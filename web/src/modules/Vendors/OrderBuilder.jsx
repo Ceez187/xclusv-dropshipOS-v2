@@ -41,8 +41,8 @@ export default function OrderBuilder({ vendor, initialItem, onClose }) {
   }
 
   return (
-    <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
-      <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Order builder</p>
+    <div className="mt-3 rounded-md border border-brand-border bg-black/30 p-3">
+      <p className="mb-2 text-xs font-semibold uppercase text-brand-muted">Order builder</p>
 
       <div className="space-y-2">
         {items.map((item, idx) => (
@@ -52,18 +52,18 @@ export default function OrderBuilder({ vendor, initialItem, onClose }) {
               min={1}
               value={item.qty}
               onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))}
-              className="w-16 rounded-md border border-slate-300 px-2 py-1 text-sm"
+              className="w-16 rounded-md border border-brand-border px-2 py-1 text-sm"
             />
             <input
               type="text"
               placeholder="Item name"
               value={item.name}
               onChange={(e) => updateItem(idx, 'name', e.target.value)}
-              className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
+              className="flex-1 rounded-md border border-brand-border px-2 py-1 text-sm"
             />
             <button
               onClick={() => removeRow(idx)}
-              className="px-2 text-sm text-slate-400 hover:text-red-600"
+              className="px-2 text-sm text-brand-muted hover:text-red-400"
               aria-label="Remove item"
             >
               ✕
@@ -72,7 +72,7 @@ export default function OrderBuilder({ vendor, initialItem, onClose }) {
         ))}
       </div>
 
-      <button onClick={addRow} className="mt-2 text-sm text-indigo-600 hover:underline">
+      <button onClick={addRow} className="mt-2 text-sm text-brand-gold hover:underline">
         + Add item
       </button>
 
@@ -80,7 +80,7 @@ export default function OrderBuilder({ vendor, initialItem, onClose }) {
         readOnly
         value={message}
         rows={4}
-        className="mt-3 w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
+        className="mt-3 w-full rounded-md border border-brand-border bg-brand-surface px-2 py-1 text-sm"
       />
 
       <div className="mt-2 flex flex-wrap gap-2">

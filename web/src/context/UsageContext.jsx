@@ -21,7 +21,7 @@ export function UsageProvider({ children }) {
       .from('user_usage')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
     if (!error) setUsage(data)
     setLoading(false)
   }, [user])

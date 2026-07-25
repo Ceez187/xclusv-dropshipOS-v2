@@ -6,16 +6,17 @@ import Button from './ui/Button'
 
 export default function Layout({ tabs, active, onChange, children }) {
   const { signOut, user } = useAuth()
+  const activeTab = tabs.find((tab) => tab.id === active)
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+    <div className="min-h-screen bg-brand-bg">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-border bg-brand-surface px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-slate-900">DropshipOS</span>
+          <span className="text-lg font-bold tracking-wide text-brand-gold">XCLUSV · DropshipOS</span>
         </div>
         <div className="flex items-center gap-4">
           <UsageBadge />
-          <span className="hidden text-sm text-slate-400 sm:inline">{user?.email}</span>
+          <span className="hidden text-sm text-brand-muted sm:inline">{user?.email}</span>
           <Button variant="ghost" onClick={signOut}>
             Sign out
           </Button>
@@ -24,7 +25,10 @@ export default function Layout({ tabs, active, onChange, children }) {
 
       <TabNav tabs={tabs} active={active} onChange={onChange} />
 
-      <main className="mx-auto max-w-6xl p-4">{children}</main>
+      <main className="mx-auto max-w-6xl p-4">
+        {activeTab && <h1 className="mb-4 text-2xl font-bold text-brand-gold">{activeTab.label}</h1>}
+        {children}
+      </main>
 
       <LimitReachedModal />
     </div>

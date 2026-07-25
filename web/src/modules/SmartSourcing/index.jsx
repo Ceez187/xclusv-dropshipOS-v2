@@ -130,7 +130,7 @@ export default function SmartSourcing({ onSendToVendors }) {
               placeholder="1688/Taobao product URL, or just describe the product"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
             />
             <Button type="submit" disabled={loading || !input.trim()}>
               {loading ? 'Analyzing…' : 'Analyze'}
@@ -148,7 +148,7 @@ export default function SmartSourcing({ onSendToVendors }) {
           </form>
         )}
 
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       </Card>
 
       {result && (
@@ -174,12 +174,12 @@ export default function SmartSourcing({ onSendToVendors }) {
 
               {result.analysis.suppliers?.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold text-slate-700">Supplier types</h4>
+                  <h4 className="mb-2 text-sm font-semibold text-brand-text">Supplier types</h4>
                   <div className="space-y-2">
                     {result.analysis.suppliers.map((s, i) => (
-                      <div key={i} className="rounded-md border border-slate-200 p-2 text-sm">
+                      <div key={i} className="rounded-md border border-brand-border p-2 text-sm">
                         <span className="font-medium">{s.type}</span> — MOQ {s.moq}
-                        {s.notes && <span className="text-slate-500"> · {s.notes}</span>}
+                        {s.notes && <span className="text-brand-muted"> · {s.notes}</span>}
                       </div>
                     ))}
                   </div>
@@ -197,7 +197,7 @@ export default function SmartSourcing({ onSendToVendors }) {
 
               {result.liveListings?.length > 0 ? (
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold text-slate-700">Live listings</h4>
+                  <h4 className="mb-2 text-sm font-semibold text-brand-text">Live listings</h4>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {result.liveListings.map((item, i) => (
                       <a
@@ -205,14 +205,14 @@ export default function SmartSourcing({ onSendToVendors }) {
                         href={item.url ?? item.link}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex gap-3 rounded-md border border-slate-200 p-2 hover:bg-slate-50"
+                        className="flex gap-3 rounded-md border border-brand-border p-2 hover:bg-black/30"
                       >
                         {item.image && (
                           <img src={item.image} alt="" className="h-16 w-16 rounded object-cover" />
                         )}
                         <div className="text-sm">
                           <p className="font-medium line-clamp-2">{item.title}</p>
-                          <p className="text-slate-500">
+                          <p className="text-brand-muted">
                             {item.price} {item.rating && `· ★${item.rating}`}
                           </p>
                         </div>
@@ -221,7 +221,7 @@ export default function SmartSourcing({ onSendToVendors }) {
                   </div>
                 </div>
               ) : (
-                <p className="flex items-center gap-2 text-sm text-slate-400">
+                <p className="flex items-center gap-2 text-sm text-brand-muted">
                   <Badge color="slate">info</Badge>
                   Live listings unavailable this cycle — use the search buttons above.
                 </p>
@@ -229,10 +229,10 @@ export default function SmartSourcing({ onSendToVendors }) {
             </div>
           ) : (
             <div>
-              <p className="mb-2 text-sm text-amber-600">
+              <p className="mb-2 text-sm text-amber-400">
                 Couldn't parse structured data — showing the raw response.
               </p>
-              <pre className="whitespace-pre-wrap text-sm text-slate-700">{result.raw}</pre>
+              <pre className="whitespace-pre-wrap text-sm text-brand-text">{result.raw}</pre>
             </div>
           )}
         </Card>
@@ -240,13 +240,13 @@ export default function SmartSourcing({ onSendToVendors }) {
 
       {history.rows.length > 0 && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-700">Recent sourcing history</h3>
+          <h3 className="mb-2 text-sm font-semibold text-brand-text">Recent sourcing history</h3>
           <div className="space-y-2">
             {history.rows.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setResult({ analysis: item.data, raw: '', liveListings: null, degraded: true })}
-                className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm hover:bg-slate-50"
+                className="block w-full rounded-md border border-brand-border bg-brand-surface px-3 py-2 text-left text-sm hover:bg-black/30"
               >
                 {item.data?.productName ?? 'Untitled'} — ${item.data?.suggestedRetail}
               </button>
@@ -260,9 +260,9 @@ export default function SmartSourcing({ onSendToVendors }) {
 
 function Stat({ label, value }) {
   return (
-    <div className="rounded-md bg-slate-50 p-3 text-center">
-      <p className="text-lg font-semibold text-slate-900">{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
+    <div className="rounded-md bg-black/30 p-3 text-center">
+      <p className="text-lg font-semibold text-brand-text">{value}</p>
+      <p className="text-xs text-brand-muted">{label}</p>
     </div>
   )
 }

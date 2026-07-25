@@ -1,8 +1,8 @@
 const VARIANTS = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300',
-  secondary: 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50',
-  danger: 'bg-red-600 text-white hover:bg-red-500 disabled:bg-red-300',
-  ghost: 'text-slate-600 hover:bg-slate-100',
+  primary: 'bg-brand-gold text-black hover:bg-brand-gold-light disabled:bg-brand-gold-dark disabled:text-brand-muted',
+  secondary: 'bg-brand-surface text-brand-text border border-brand-border hover:bg-brand-surface-hover',
+  danger: 'bg-red-600 text-white hover:bg-red-500 disabled:bg-red-900 disabled:text-red-300',
+  ghost: 'text-brand-muted hover:bg-brand-surface-hover hover:text-brand-text',
 }
 
 export default function Button({

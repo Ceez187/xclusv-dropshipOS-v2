@@ -7,8 +7,35 @@
   --color-status-shipped: #d97706;
   --color-status-delivered: #16a34a;
   --color-status-cancelled: #dc2626;
+
+  --color-brand-bg: #0a0a0a;
+  --color-brand-surface: #141414;
+  --color-brand-surface-hover: #1f1f1f;
+  --color-brand-border: #2a2a2a;
+  --color-brand-text: #e8e8e8;
+  --color-brand-muted: #8a8a8a;
+  --color-brand-gold: #c9a84c;
+  --color-brand-gold-light: #e2c06a;
+  --color-brand-gold-dark: #7a6030;
+}
+
+:root {
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900;
+  @apply bg-brand-bg text-brand-text;
+}
+
+@layer base {
+  input,
+  select,
+  textarea {
+    @apply bg-brand-surface text-brand-text placeholder:text-brand-muted;
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    @apply border-brand-gold outline-none;
+  }
 }

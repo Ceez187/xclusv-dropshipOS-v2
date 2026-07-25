@@ -5,14 +5,10 @@ A from-scratch rebuild: React + Vite frontend (`/web`), Express proxy (`/server`
 ## 1. Set up Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open the SQL editor and run `supabase/migrations/0001_init.sql` once.
+2. Open the SQL editor and run `supabase/migrations/0001_init.sql`, then `0002_user_usage_rls.sql`, in order.
 3. Grab your project's `URL`, `anon` public key, and `service_role` secret key from Settings → API.
 
-> **Security note:** the migration is shipped verbatim from spec. `user_usage` has **no RLS policy** — only `vendors`, `orders`, `customers`, and `saved_items` do. That table is only ever written by the proxy (service key), so the app is safe as built, but if you ever expose `user_usage` to direct client reads/writes, add RLS to it too:
-> ```sql
-> alter table user_usage enable row level security;
-> create policy "own row only" on user_usage for select using (auth.uid() = user_id);
-> ```
+`0001_init.sql` is the spec's schema verbatim, which left `user_usage` without RLS (only `vendors`, `orders`, `customers`, and `saved_items` have policies). `0002_user_usage_rls.sql` closes that gap with a `select`-only policy — the frontend only ever reads its own row (`UsageContext`); all writes go through the proxy's service key, which bypasses RLS anyway.
 
 ## 2. Configure environment variables
 

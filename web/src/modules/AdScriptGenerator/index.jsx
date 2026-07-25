@@ -59,7 +59,7 @@ export default function AdScriptGenerator() {
             placeholder="Product name / description"
             value={product}
             onChange={(e) => setProduct(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
           />
           <div className="flex gap-2">
             {PLATFORMS.map((p) => (
@@ -69,8 +69,8 @@ export default function AdScriptGenerator() {
                 onClick={() => setPlatform(p)}
                 className={`rounded-md border px-3 py-2 text-sm ${
                   platform === p
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                    : 'border-slate-300 text-slate-600'
+                    ? 'border-brand-gold bg-brand-gold/10 text-brand-gold-light'
+                    : 'border-brand-border text-brand-muted'
                 }`}
               >
                 {p}
@@ -81,7 +81,7 @@ export default function AdScriptGenerator() {
             {loading ? 'Generating…' : 'Generate scripts'}
           </Button>
         </form>
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       </Card>
 
       {scripts && (
@@ -89,7 +89,7 @@ export default function AdScriptGenerator() {
           {scripts.map((s, i) => (
             <Card key={i}>
               <Badge color="blue">{s.angle}</Badge>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{s.script}</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-brand-text">{s.script}</p>
             </Card>
           ))}
         </div>

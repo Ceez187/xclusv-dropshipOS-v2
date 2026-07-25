@@ -82,12 +82,12 @@ export default function Vendors({ draftItem, onDraftConsumed }) {
             placeholder="Vendor name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm"
           />
           <select
             value={form.contact_method}
             onChange={(e) => setForm({ ...form, contact_method: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm"
           >
             {CONTACT_METHODS.map((m) => (
               <option key={m} value={m}>
@@ -99,17 +99,17 @@ export default function Vendors({ draftItem, onDraftConsumed }) {
             placeholder="Contact value (phone, handle, email...)"
             value={form.contact_value}
             onChange={(e) => setForm({ ...form, contact_value: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm sm:col-span-2"
           />
           <textarea
             placeholder="Notes"
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             rows={2}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm sm:col-span-2"
           />
 
-          {formError && <p className="text-sm text-red-600 sm:col-span-2">{formError}</p>}
+          {formError && <p className="text-sm text-red-400 sm:col-span-2">{formError}</p>}
 
           <div className="flex gap-2 sm:col-span-2">
             <Button type="submit">{editingId ? 'Save changes' : 'Add vendor'}</Button>
@@ -124,9 +124,9 @@ export default function Vendors({ draftItem, onDraftConsumed }) {
 
       <div>
         <h2 className="mb-3 text-base font-semibold">Vendors ({vendors.length})</h2>
-        {loading && <p className="text-sm text-slate-400">Loading…</p>}
+        {loading && <p className="text-sm text-brand-muted">Loading…</p>}
         {!loading && vendors.length === 0 && (
-          <p className="text-sm text-slate-400">No vendors yet — add your first one above.</p>
+          <p className="text-sm text-brand-muted">No vendors yet — add your first one above.</p>
         )}
 
         <div className="space-y-3">
@@ -135,13 +135,13 @@ export default function Vendors({ draftItem, onDraftConsumed }) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-slate-900">{vendor.name}</h3>
+                    <h3 className="font-semibold text-brand-text">{vendor.name}</h3>
                     <Badge color={METHOD_COLOR[vendor.contact_method] ?? 'slate'}>
                       {vendor.contact_method}
                     </Badge>
                   </div>
-                  <p className="text-sm text-slate-500">{vendor.contact_value}</p>
-                  {vendor.notes && <p className="mt-1 text-sm text-slate-600">{vendor.notes}</p>}
+                  <p className="text-sm text-brand-muted">{vendor.contact_value}</p>
+                  {vendor.notes && <p className="mt-1 text-sm text-brand-muted">{vendor.notes}</p>}
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Button
@@ -177,7 +177,7 @@ export default function Vendors({ draftItem, onDraftConsumed }) {
       </div>
 
       {draftItem && (
-        <p className="text-sm text-indigo-600">
+        <p className="text-sm text-brand-gold">
           Sourced item "{draftItem}" is ready — open a vendor's order builder to add it.
         </p>
       )}

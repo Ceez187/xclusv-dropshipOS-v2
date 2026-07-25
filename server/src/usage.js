@@ -4,7 +4,7 @@ const ACTION_COST = {
   listing_generator: 1,
   pricing_calculator: 1,
   ad_script_generator: 1,
-  vendor_ai: 1,
+  customer_analysis: 1,
   smart_sourcing: 3,
   smart_sourcing_live: 5,
   default: 1,

@@ -72,7 +72,7 @@ export default function CustomerIntelligence() {
     try {
       const customerOrders = orders.rows.filter((o) => o.customer_name === customer.name)
       const res = await callClaude({
-        actionType: 'vendor_ai',
+        actionType: 'customer_analysis',
         messages: buildAnalysisMessages(customer, customerOrders),
       })
       applyProxyUsage(res.usage)
@@ -98,27 +98,27 @@ export default function CustomerIntelligence() {
             placeholder="Name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm"
           />
           <input
             placeholder="Email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm"
           />
           <input
             type="number"
             placeholder="Total orders"
             value={form.total_orders}
             onChange={(e) => setForm({ ...form, total_orders: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm"
           />
           <input
             type="number"
             placeholder="LTV ($)"
             value={form.ltv}
             onChange={(e) => setForm({ ...form, ltv: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm"
           />
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <input
@@ -133,7 +133,7 @@ export default function CustomerIntelligence() {
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             rows={2}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm sm:col-span-2"
           />
           <div className="flex gap-2 sm:col-span-2">
             <Button type="submit">{editingId ? 'Save changes' : 'Add customer'}</Button>
@@ -153,7 +153,7 @@ export default function CustomerIntelligence() {
         </form>
       </Card>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       <div className="space-y-3">
         {customers.rows.map((customer) => (
@@ -161,16 +161,16 @@ export default function CustomerIntelligence() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-slate-900">{customer.name}</h3>
+                  <h3 className="font-semibold text-brand-text">{customer.name}</h3>
                   {customer.is_repeat && <Badge color="green">repeat</Badge>}
                 </div>
-                <p className="text-sm text-slate-500">{customer.email}</p>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-brand-muted">{customer.email}</p>
+                <p className="text-sm text-brand-muted">
                   {customer.total_orders} orders · ${customer.ltv} LTV
                 </p>
-                {customer.notes && <p className="mt-1 text-sm text-slate-600">{customer.notes}</p>}
+                {customer.notes && <p className="mt-1 text-sm text-brand-muted">{customer.notes}</p>}
                 {analysis[customer.id] && (
-                  <p className="mt-2 rounded-md bg-indigo-50 p-2 text-sm text-indigo-800">
+                  <p className="mt-2 rounded-md bg-brand-gold/10 p-2 text-sm text-brand-gold-light">
                     {analysis[customer.id]}
                   </p>
                 )}

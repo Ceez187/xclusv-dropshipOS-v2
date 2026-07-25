@@ -1,5 +1,6 @@
 const express = require('express')
 const { auth } = require('../middleware/auth')
+const { enforceUsageLimit } = require('../middleware/enforceUsage')
 const { checkUsage, burnUsage } = require('../usage')
 const { anthropic, MODEL } = require('../anthropic')
 
@@ -8,7 +9,11 @@ const router = express.Router()
 // Smart Sourcing: Claude analysis + optional RapidAPI live listings, with
 // graceful degrade — a RapidAPI failure or exhausted RapidAPI quota never
 // blocks the Claude analysis response, it just comes back degraded: true.
-router.post('/', auth, async (req, res) => {
+// enforceUsageLimit gates on the base 'smart_sourcing' cost before the
+// Anthropic call runs at all — previously this route called Claude first
+// and only checked usage afterward, so an over-limit user still got a full
+// analysis back.
+router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => {
   try {
     const analysis = await anthropic.messages.create({
       model: MODEL,
@@ -38,12 +43,20 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
+    // Re-check rather than reuse req.usageCheck: usedRapidApi may have
+    // raised the cost from 'smart_sourcing' (3) to 'smart_sourcing_live' (5)
+    // since the middleware ran, so the burn needs a fresh snapshot + cost.
     const finalCheck = await checkUsage(
       req.user.id,
       usedRapidApi ? 'smart_sourcing_live' : 'smart_sourcing',
       usedRapidApi
     )
-    if (finalCheck.ok) await burnUsage(req.user.id, finalCheck.usage, finalCheck.cost, usedRapidApi)
+    await burnUsage(
+      req.user.id,
+      finalCheck.ok ? finalCheck.usage : req.usageCheck.usage,
+      finalCheck.ok ? finalCheck.cost : req.usageCheck.cost,
+      finalCheck.ok && usedRapidApi
+    )
 
     res.json({ content: analysis.content, liveListings, degraded: !usedRapidApi })
   } catch (err) {

@@ -45,37 +45,37 @@ export default function PricingCalculator() {
             placeholder="Product name (optional)"
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
+            className="rounded-md border border-brand-border px-3 py-2 text-sm sm:col-span-2"
           />
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
+            <label className="mb-1 block text-xs font-medium text-brand-muted">
               1688/Taobao cost ($)
             </label>
             <input
               type="number"
               value={cost}
               onChange={(e) => setCost(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
+            <label className="mb-1 block text-xs font-medium text-brand-muted">
               Shipping estimate ($)
             </label>
             <input
               type="number"
               value={shipping}
               onChange={(e) => setShipping(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Basetao fee (%)</label>
+            <label className="mb-1 block text-xs font-medium text-brand-muted">Basetao fee (%)</label>
             <input
               type="number"
               value={basetaoFeePercent}
               onChange={(e) => setBasetaoFeePercent(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
             />
           </div>
         </div>
@@ -83,15 +83,15 @@ export default function PricingCalculator() {
 
       {hasInput && (
         <Card>
-          <h3 className="mb-3 text-sm font-semibold text-slate-700">
+          <h3 className="mb-3 text-sm font-semibold text-brand-text">
             Landed cost: ${tiers[0]?.totalCost}
           </h3>
           <div className="grid gap-3 sm:grid-cols-3">
             {tiers.map((tier) => (
-              <div key={tier.multiplier} className="rounded-md border border-slate-200 p-3 text-center">
-                <p className="text-xs font-medium text-slate-500">{tier.multiplier}x margin</p>
-                <p className="text-xl font-bold text-slate-900">${tier.retail}</p>
-                <p className="text-xs text-green-600">+${tier.profit} profit</p>
+              <div key={tier.multiplier} className="rounded-md border border-brand-border p-3 text-center">
+                <p className="text-xs font-medium text-brand-muted">{tier.multiplier}x margin</p>
+                <p className="text-xl font-bold text-brand-text">${tier.retail}</p>
+                <p className="text-xs text-green-400">+${tier.profit} profit</p>
               </div>
             ))}
           </div>
@@ -103,12 +103,12 @@ export default function PricingCalculator() {
 
       {saved.rows.length > 0 && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-700">
+          <h3 className="mb-2 text-sm font-semibold text-brand-text">
             Saved profiles ({saved.rows.length})
           </h3>
           <div className="space-y-2">
             {saved.rows.map((item) => (
-              <div key={item.id} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <div key={item.id} className="rounded-md border border-brand-border bg-brand-surface px-3 py-2 text-sm">
                 <span className="font-medium">{item.data?.productName || 'Untitled'}</span>
                 {' — '}
                 cost ${item.data?.cost}, retail ${item.data?.tiers?.[1]?.retail} @ 3x
