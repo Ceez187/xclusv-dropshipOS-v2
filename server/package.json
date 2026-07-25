@@ -1,0 +1,21 @@
+{
+  "name": "dropshipos-proxy",
+  "version": "1.0.0",
+  "description": "DropshipOS Express proxy — mediates Anthropic/RapidAPI calls with Supabase-backed usage metering",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "@supabase/supabase-js": "^2.110.8",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

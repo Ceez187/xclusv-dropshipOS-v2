@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-status-sourcing: #64748b;
+  --color-status-ordered: #2563eb;
+  --color-status-basetao_received: #7c3aed;
+  --color-status-shipped: #d97706;
+  --color-status-delivered: #16a34a;
+  --color-status-cancelled: #dc2626;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900;
+}
