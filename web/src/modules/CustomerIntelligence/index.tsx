@@ -45,6 +45,7 @@ export default function CustomerIntelligence() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setError('')
     const values = {
       name: form.name,
       email: form.email,
@@ -53,10 +54,14 @@ export default function CustomerIntelligence() {
       is_repeat: form.is_repeat,
       notes: form.notes,
     }
-    if (editingId) await customers.update(editingId, values)
-    else await customers.insert(values)
-    setForm(EMPTY_FORM)
-    setEditingId(null)
+    try {
+      if (editingId) await customers.update(editingId, values)
+      else await customers.insert(values)
+      setForm(EMPTY_FORM)
+      setEditingId(null)
+    } catch (err) {
+      setError((err as Error).message || 'Something went wrong saving this customer.')
+    }
   }
 
   function startEdit(customer: Customer) {
@@ -73,7 +78,11 @@ export default function CustomerIntelligence() {
 
   async function confirmDelete() {
     if (!pendingDelete) return
-    await customers.remove(pendingDelete.id)
+    try {
+      await customers.remove(pendingDelete.id)
+    } catch (err) {
+      setError((err as Error).message || 'Something went wrong deleting this customer.')
+    }
     setPendingDelete(null)
   }
 

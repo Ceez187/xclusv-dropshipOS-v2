@@ -42,6 +42,7 @@ export default function PricingCalculator() {
   const [shipping, setShipping] = useState('')
   const [basetaoFeePercent, setBasetaoFeePercent] = useState('10')
   const [productName, setProductName] = useState('')
+  const [saveError, setSaveError] = useState('')
 
   const parsed: PricingInput = {
     cost: parseFloat(cost) || 0,
@@ -52,9 +53,14 @@ export default function PricingCalculator() {
   const tiers = hasInput ? computeTiers(parsed) : []
 
   async function handleSave() {
-    await saved.insert({
-      data: { productName, ...parsed, tiers },
-    } as Partial<SavedItem<PricingProfile>>)
+    setSaveError('')
+    try {
+      await saved.insert({
+        data: { productName, ...parsed, tiers },
+      } as Partial<SavedItem<PricingProfile>>)
+    } catch (err) {
+      setSaveError((err as Error).message || 'Something went wrong saving this pricing profile.')
+    }
   }
 
   return (
@@ -119,6 +125,7 @@ export default function PricingCalculator() {
           <Button variant="secondary" className="mt-4" onClick={handleSave}>
             Save pricing profile
           </Button>
+          {saveError && <p className="mt-2 text-sm text-red-400">{saveError}</p>}
         </Card>
       )}
 

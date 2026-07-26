@@ -61,13 +61,17 @@ export default function Vendors({ draftItem, onDraftConsumed }: VendorsProps) {
       return
     }
 
-    if (editingId) {
-      await update(editingId, form)
-    } else {
-      await insert(form)
+    try {
+      if (editingId) {
+        await update(editingId, form)
+      } else {
+        await insert(form)
+      }
+      setForm(EMPTY_FORM)
+      setEditingId(null)
+    } catch (err) {
+      setFormError((err as Error).message || 'Something went wrong saving this vendor.')
     }
-    setForm(EMPTY_FORM)
-    setEditingId(null)
   }
 
   function startEdit(vendor: Vendor) {
@@ -88,7 +92,11 @@ export default function Vendors({ draftItem, onDraftConsumed }: VendorsProps) {
 
   async function confirmDelete() {
     if (!pendingDelete) return
-    await remove(pendingDelete.id)
+    try {
+      await remove(pendingDelete.id)
+    } catch (err) {
+      setFormError((err as Error).message || 'Something went wrong deleting this vendor.')
+    }
     setPendingDelete(null)
   }
 

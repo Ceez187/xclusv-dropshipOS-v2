@@ -61,6 +61,7 @@ export default function OrderTracker() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Order | null>(null)
+  const [formError, setFormError] = useState('')
 
   function startEdit(order: Order) {
     setEditingId(order.id)
@@ -84,24 +85,37 @@ export default function OrderTracker() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setFormError('')
     const values = {
       ...form,
       vendor_id: form.vendor_id || null,
       source_cost: form.source_cost === '' ? null : Number(form.source_cost),
       sell_price: form.sell_price === '' ? null : Number(form.sell_price),
     }
-    if (editingId) await orders.update(editingId, { ...values, updated_at: new Date().toISOString() })
-    else await orders.insert(values)
-    resetForm()
+    try {
+      if (editingId) await orders.update(editingId, { ...values, updated_at: new Date().toISOString() })
+      else await orders.insert(values)
+      resetForm()
+    } catch (err) {
+      setFormError((err as Error).message || 'Something went wrong saving this order.')
+    }
   }
 
   async function updateStatus(order: Order, status: OrderStatus) {
-    await orders.update(order.id, { status, updated_at: new Date().toISOString() })
+    try {
+      await orders.update(order.id, { status, updated_at: new Date().toISOString() })
+    } catch (err) {
+      setFormError((err as Error).message || 'Something went wrong updating this order.')
+    }
   }
 
   async function confirmDelete() {
     if (!pendingDelete) return
-    await orders.remove(pendingDelete.id)
+    try {
+      await orders.remove(pendingDelete.id)
+    } catch (err) {
+      setFormError((err as Error).message || 'Something went wrong deleting this order.')
+    }
     setPendingDelete(null)
   }
 
@@ -177,12 +191,15 @@ export default function OrderTracker() {
               rows={2}
               className="rounded-md border border-brand-border px-3 py-2 text-sm sm:col-span-2"
             />
+            {formError && <p className="text-sm text-red-400 sm:col-span-2">{formError}</p>}
             <Button type="submit" className="sm:col-span-2">
               {editingId ? 'Save changes' : 'Create order'}
             </Button>
           </form>
         </Card>
       )}
+
+      {!showForm && formError && <p className="text-sm text-red-400">{formError}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
         {STATUSES.map((status) => (
