@@ -14,14 +14,14 @@ import CustomerIntelligence from './modules/CustomerIntelligence'
 import type { Tab } from './types'
 
 const TABS: Tab[] = [
-  { id: 'how-it-works', label: 'How It Works' },
-  { id: 'sourcing', label: 'Smart Sourcing' },
-  { id: 'vendors', label: 'Vendors' },
-  { id: 'listings', label: 'Listings' },
-  { id: 'pricing', label: 'Pricing' },
-  { id: 'ads', label: 'Ad Scripts' },
-  { id: 'orders', label: 'Orders' },
-  { id: 'customers', label: 'Customers' },
+  { id: 'how-it-works', label: 'How It Works', icon: 'ℹ️' },
+  { id: 'sourcing', label: 'Smart Sourcing', icon: '🔍' },
+  { id: 'vendors', label: 'Vendors', icon: '🤝' },
+  { id: 'listings', label: 'Listings', icon: '📝' },
+  { id: 'pricing', label: 'Pricing', icon: '💰' },
+  { id: 'ads', label: 'Ad Scripts', icon: '🎬' },
+  { id: 'orders', label: 'Orders', icon: '📦' },
+  { id: 'customers', label: 'Customers', icon: '👥' },
 ]
 
 function Workspace() {

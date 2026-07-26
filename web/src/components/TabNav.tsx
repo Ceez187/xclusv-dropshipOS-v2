@@ -19,6 +19,7 @@ export default function TabNav({ tabs, active, onChange }: TabNavProps) {
               : 'border-transparent text-brand-muted hover:text-brand-text'
           }`}
         >
+          {tab.icon && <span className="mr-1.5">{tab.icon}</span>}
           {tab.label}
         </button>
       ))}

@@ -8,19 +8,30 @@ import Button from '../../components/ui/Button'
 import Badge from '../../components/ui/Badge'
 import type { Listing, SavedItem, SourcingAnalysis } from '../../types'
 
-interface ListingForm {
-  name: string
-  cost: string
-  features: string
+const PLATFORMS = ['Shopify', 'Amazon', 'TikTok Shop', 'eBay', 'Etsy'] as const
+type Platform = (typeof PLATFORMS)[number]
+
+const PLATFORM_GUIDANCE: Record<Platform, string> = {
+  Shopify: 'a persuasive, conversion-focused Shopify product page description',
+  Amazon: 'an Amazon-style listing with a benefit-driven title and scannable bullet points',
+  'TikTok Shop': 'a punchy, social-native listing that feels at home on TikTok Shop — short and scroll-stopping',
+  eBay: 'a concise, practical eBay listing that builds buyer trust with clear specs',
+  Etsy: 'a warm, handcrafted-feeling Etsy listing, even though this is a sourced item',
 }
 
-const EMPTY_FORM: ListingForm = { name: '', cost: '', features: '' }
+interface ListingForm {
+  description: string
+  platform: Platform
+  keywords: string
+}
+
+const EMPTY_FORM: ListingForm = { description: '', platform: 'Shopify', keywords: '' }
 
 function buildMessages(form: ListingForm): ClaudeMessage[] {
   return [
     {
       role: 'user',
-      content: `Write a Shopify-ready product listing for this dropshipped product.\nName: ${form.name}\nCost: $${form.cost}\nFeatures: ${form.features}\n\nRespond with ONLY JSON, no prose, no markdown fences, matching exactly this shape:\n{ "title": string, "description": string, "tags": [string] }`,
+      content: `Write ${PLATFORM_GUIDANCE[form.platform]} for this dropshipped product.\nProduct: ${form.description}${form.keywords.trim() ? `\nTarget keywords to naturally include: ${form.keywords}` : ''}\n\nRespond with ONLY JSON, no prose, no markdown fences, matching exactly this shape:\n{ "title": string, "description": string, "tags": [string] }`,
     },
   ]
 }
@@ -40,10 +51,14 @@ export default function ListingGenerator() {
   const [listing, setListing] = useState<Listing | null>(null)
 
   function prefillFromSourcing(item: SavedItem<SourcingAnalysis>) {
+    const analysis = item.data
+    const priceNote =
+      analysis?.priceRangeLow != null && analysis?.priceRangeHigh != null
+        ? ` (source cost $${analysis.priceRangeLow}–$${analysis.priceRangeHigh})`
+        : ''
     setForm({
-      name: item.data?.productName ?? '',
-      cost: item.data?.priceRangeLow != null ? String(item.data.priceRangeLow) : '',
-      features: '',
+      ...EMPTY_FORM,
+      description: `${analysis?.productName ?? ''}${priceNote}`,
     })
   }
 
@@ -93,30 +108,52 @@ export default function ListingGenerator() {
       )}
 
       <Card>
-        <h2 className="mb-3 text-base font-semibold">Listing Generator</h2>
+        <h2 className="mb-1 text-lg font-bold text-brand-gold">Listing Generator</h2>
+        <p className="mb-3 text-sm text-brand-muted">AI-written listings optimized for your platform</p>
         <form onSubmit={handleGenerate} className="space-y-3">
-          <input
-            placeholder="Product name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
-          />
-          <input
-            placeholder="Cost ($)"
-            type="number"
-            value={form.cost}
-            onChange={(e) => setForm({ ...form, cost: e.target.value })}
-            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
-          />
-          <textarea
-            placeholder="Key features (comma separated)"
-            value={form.features}
-            onChange={(e) => setForm({ ...form, features: e.target.value })}
-            rows={3}
-            className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
-          />
-          <Button type="submit" disabled={loading || !form.name.trim()}>
-            {loading ? 'Generating…' : 'Generate listing'}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-muted">Product description</label>
+            <textarea
+              placeholder="e.g. Wireless car phone mount, 15W fast charging, dashboard/windshield"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={3}
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-muted">Platform</label>
+            <div className="flex flex-wrap gap-2">
+              {PLATFORMS.map((p) => (
+                <button
+                  type="button"
+                  key={p}
+                  onClick={() => setForm({ ...form, platform: p })}
+                  className={`rounded-md border px-3 py-2 text-sm font-medium ${
+                    form.platform === p
+                      ? 'border-brand-gold bg-brand-gold text-black'
+                      : 'border-brand-border text-brand-muted'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-muted">Target keywords (optional)</label>
+            <input
+              placeholder="car phone holder, wireless charger..."
+              value={form.keywords}
+              onChange={(e) => setForm({ ...form, keywords: e.target.value })}
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <Button type="submit" disabled={loading || !form.description.trim()}>
+            {loading ? 'Generating…' : '✍️ Generate Listing'}
           </Button>
         </form>
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}

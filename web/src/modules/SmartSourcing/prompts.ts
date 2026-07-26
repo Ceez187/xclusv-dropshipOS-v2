@@ -22,7 +22,7 @@ export function buildTextSourcingMessages(input: string): ClaudeMessage[] {
   ]
 }
 
-export function buildImageSourcingMessages(base64Data: string, mediaType: string): ClaudeMessage[] {
+export function buildImageSourcingMessages(base64Data: string, mediaType: string, extraContext?: string): ClaudeMessage[] {
   return [
     {
       role: 'user',
@@ -30,7 +30,9 @@ export function buildImageSourcingMessages(base64Data: string, mediaType: string
         { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
         {
           type: 'text',
-          text: `Identify this product and analyze it as a sourcing assistant for a US dropshipper who buys from Chinese suppliers on 1688/Taobao and fulfills via a Basetao agent.\n\nRespond with ONLY JSON, no prose, no markdown fences, matching exactly this shape:\n${RESPONSE_SHAPE}`,
+          text: `Identify this product and analyze it as a sourcing assistant for a US dropshipper who buys from Chinese suppliers on 1688/Taobao and fulfills via a Basetao agent.${
+            extraContext?.trim() ? ` Additional context from the user: ${extraContext.trim()}.` : ''
+          }\n\nRespond with ONLY JSON, no prose, no markdown fences, matching exactly this shape:\n${RESPONSE_SHAPE}`,
         },
       ],
     },

@@ -105,4 +105,5 @@ export interface AdScript {
 export interface Tab {
   id: string
   label: string
+  icon?: string
 }

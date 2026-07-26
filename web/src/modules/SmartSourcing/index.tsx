@@ -115,13 +115,14 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
     ascending: false,
   })
 
-  const [mode, setMode] = useState<'url' | 'image'>('url')
-  const [input, setInput] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [urlInput, setUrlInput] = useState('')
+  const [descriptionInput, setDescriptionInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<SourcingResult | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
   const [copiedBriefSite, setCopiedBriefSite] = useState<string | null>(null)
   const [copiedKeywordSite, setCopiedKeywordSite] = useState<string | null>(null)
 
@@ -142,47 +143,37 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
     }
   }
 
-  async function runUrlAnalysis(e: FormEvent) {
+  async function runAnalysis(e: FormEvent) {
     e.preventDefault()
-    if (!input.trim()) return
-    setLoading(true)
-    setError('')
-    setResult(null)
-    try {
-      const messages = buildTextSourcingMessages(input.trim())
-      const res = await callSourcing({ messages, keyword: input.trim() })
-      const { data: analysis, raw } = parseAnalysis<SourcingAnalysis>(res.content)
-      setResult({
-        analysis,
-        raw,
-        liveListings: (res.liveListings as LiveListing[] | null) ?? null,
-        degraded: res.degraded,
-      })
-      await refreshUsage()
-      if (analysis) await saveToHistory(analysis)
-    } catch (err) {
-      if (err instanceof ApiError && reportLimitReached(err)) {
-        // LimitReachedModal will render
-      } else {
-        setError((err as Error).message || 'Something went wrong.')
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
+    const url = urlInput.trim()
+    const description = descriptionInput.trim()
+    if (!imageFile && !url && !description) return
 
-  async function runImageAnalysis(e: FormEvent) {
-    e.preventDefault()
-    if (!imageFile) return
     setLoading(true)
     setError('')
     setResult(null)
     try {
-      const base64 = await fileToBase64(imageFile)
-      const messages = buildImageSourcingMessages(base64, imageFile.type)
-      const res = await callVision({ messages })
-      const { data: analysis, raw } = parseAnalysis<SourcingAnalysis>(res.content)
-      setResult({ analysis, raw, liveListings: null, degraded: true })
+      let analysis: SourcingAnalysis | null
+      let raw: string
+      let liveListings: LiveListing[] | null = null
+      let degraded = true
+
+      if (imageFile) {
+        const base64 = await fileToBase64(imageFile)
+        const extraContext = [url, description].filter(Boolean).join(' — ')
+        const messages = buildImageSourcingMessages(base64, imageFile.type, extraContext)
+        const res = await callVision({ messages })
+        ;({ data: analysis, raw } = parseAnalysis<SourcingAnalysis>(res.content))
+      } else {
+        const combined = [url, description].filter(Boolean).join(' — ')
+        const messages = buildTextSourcingMessages(combined)
+        const res = await callSourcing({ messages, keyword: combined })
+        ;({ data: analysis, raw } = parseAnalysis<SourcingAnalysis>(res.content))
+        liveListings = (res.liveListings as LiveListing[] | null) ?? null
+        degraded = !!res.degraded
+      }
+
+      setResult({ analysis, raw, liveListings, degraded })
       await refreshUsage()
       if (analysis) await saveToHistory(analysis)
     } catch (err) {
@@ -208,44 +199,94 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
     setTimeout(() => setCopiedKeywordSite((prev) => (prev === site.key ? null : prev)), 1500)
   }
 
+  const fallbackKeyword = [descriptionInput, urlInput].filter(Boolean).join(' ')
+
   return (
     <div className="space-y-6">
-      <Card>
-        <div className="mb-4 flex flex-wrap gap-2">
-          <Button variant={mode === 'url' ? 'primary' : 'secondary'} onClick={() => setMode('url')}>
-            Paste URL / keyword
-          </Button>
-          <Button
-            variant={mode === 'image' ? 'primary' : 'secondary'}
-            onClick={() => setMode('image')}
-          >
-            Upload image
-          </Button>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-bold text-brand-gold">Smart Sourcing</h2>
+          <p className="text-sm text-brand-muted">Photo · URL · or describe — AI finds suppliers + brief</p>
         </div>
+        <Button variant="secondary" onClick={() => setShowHistory((v) => !v)}>
+          📋 History ({history.rows.length})
+        </Button>
+      </div>
 
-        {mode === 'url' ? (
-          <form onSubmit={runUrlAnalysis} className="space-y-3">
+      {showHistory && history.rows.length > 0 && (
+        <Card>
+          <h3 className="mb-2 text-sm font-semibold text-brand-text">Recent sourcing history</h3>
+          <div className="space-y-2">
+            {history.rows.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setResult({ analysis: item.data, raw: '', liveListings: null, degraded: true })
+                  setShowHistory(false)
+                }}
+                className="block w-full rounded-md border border-brand-border bg-brand-surface px-3 py-2 text-left text-sm hover:bg-black/30"
+              >
+                {item.data?.productName ?? 'Untitled'} — ${item.data?.suggestedRetail}
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        <form onSubmit={runAnalysis} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-muted">📷 Upload Product Photo</label>
+            <label
+              htmlFor="sourcing-photo-input"
+              className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-brand-border py-8 text-center hover:bg-brand-surface-hover"
+            >
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="h-32 w-32 max-w-full rounded-md object-cover" />
+              ) : (
+                <>
+                  <span className="text-2xl">📷</span>
+                  <span className="text-sm text-brand-text">Tap to upload a product photo</span>
+                  <span className="text-xs text-brand-muted">JPG, PNG, WEBP · max 4MB</span>
+                </>
+              )}
+            </label>
             <input
-              placeholder="1688/Taobao product URL, or just describe the product"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              id="sourcing-photo-input"
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-muted">
+              Product URL (optional — 1688, Taobao, Amazon, AliExpress)
+            </label>
+            <input
+              placeholder="https://..."
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
               className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
             />
-            <Button type="submit" disabled={loading || !input.trim()}>
-              {loading ? 'Analyzing…' : 'Analyze'}
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={runImageAnalysis} className="space-y-3">
-            <input type="file" accept="image/*" onChange={handleImageSelect} />
-            {imagePreview && (
-              <img src={imagePreview} alt="Preview" className="h-40 w-40 max-w-full rounded-md object-cover" />
-            )}
-            <Button type="submit" disabled={loading || !imageFile}>
-              {loading ? 'Analyzing…' : 'Analyze image'}
-            </Button>
-          </form>
-        )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-muted">Describe the product (optional)</label>
+            <textarea
+              placeholder="e.g. LED car interior lights, RGB strip, USB powered, 5 meters"
+              value={descriptionInput}
+              onChange={(e) => setDescriptionInput(e.target.value)}
+              rows={3}
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <Button type="submit" disabled={loading || (!imageFile && !urlInput.trim() && !descriptionInput.trim())}>
+            {loading ? 'Analyzing…' : '🔍 Find Suppliers + Brief'}
+          </Button>
+        </form>
 
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
       </Card>
@@ -289,9 +330,9 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                 <h4 className="mb-2 text-sm font-semibold text-brand-text">Search by site</h4>
                 <div className="space-y-2">
                   {(() => {
-                    const directItem = detectDirectItemUrl(input)
+                    const directItem = detectDirectItemUrl(urlInput)
                     return SOURCING_SITES.map((site) => {
-                      const keyword = siteKeyword(site, result.analysis, input)
+                      const keyword = siteKeyword(site, result.analysis, fallbackKeyword)
                       const isDirect = directItem?.key === site.key
                       const openUrl = isDirect ? directItem!.url : site.buildUrl(keyword)
                       return (
@@ -364,23 +405,6 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
             </div>
           )}
         </Card>
-      )}
-
-      {history.rows.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-brand-text">Recent sourcing history</h3>
-          <div className="space-y-2">
-            {history.rows.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setResult({ analysis: item.data, raw: '', liveListings: null, degraded: true })}
-                className="block w-full rounded-md border border-brand-border bg-brand-surface px-3 py-2 text-left text-sm hover:bg-black/30"
-              >
-                {item.data?.productName ?? 'Untitled'} — ${item.data?.suggestedRetail}
-              </button>
-            ))}
-          </div>
-        </div>
       )}
     </div>
   )
