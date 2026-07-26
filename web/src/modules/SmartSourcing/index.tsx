@@ -24,13 +24,59 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
-function searchLinks(analysis: SourcingAnalysis | null, fallbackInput: string) {
+interface SourcingSite {
+  key: string
+  label: string
+  useZh: boolean
+  buildUrl: (keyword: string) => string
+}
+
+const SOURCING_SITES: SourcingSite[] = [
+  {
+    key: 'ali1688',
+    label: '1688',
+    useZh: true,
+    buildUrl: (kw) => `https://www.1688.com/s/?keywords=${encodeURIComponent(kw)}`,
+  },
+  {
+    key: 'taobao',
+    label: 'Taobao',
+    useZh: true,
+    buildUrl: (kw) => `https://s.taobao.com/search?q=${encodeURIComponent(kw)}`,
+  },
+  {
+    key: 'aliexpress',
+    label: 'AliExpress',
+    useZh: false,
+    buildUrl: (kw) => `https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(kw)}`,
+  },
+  {
+    key: 'basetao',
+    label: 'Basetao',
+    useZh: false,
+    buildUrl: (kw) => `https://www.basetao.com/goods/search.html?keyword=${encodeURIComponent(kw)}`,
+  },
+]
+
+function siteKeyword(site: SourcingSite, analysis: SourcingAnalysis | null, fallbackInput: string) {
   const zh = analysis?.searchKeywordZh || fallbackInput || ''
   const en = analysis?.searchKeywordEn || fallbackInput || ''
-  return {
-    ali1688: `https://www.1688.com/s/?keywords=${encodeURIComponent(zh)}`,
-    basetao: `https://www.basetao.com/goods/search.html?keyword=${encodeURIComponent(en || zh)}`,
-  }
+  return (site.useZh ? zh || en : en || zh) || fallbackInput
+}
+
+function buildSiteBrief(site: SourcingSite, analysis: SourcingAnalysis, keyword: string) {
+  const supplierLines = analysis.suppliers?.length
+    ? analysis.suppliers
+        .map((s) => `- ${s.type} (MOQ ${s.moq})${s.notes ? ` — ${s.notes}` : ''}`)
+        .join('\n')
+    : '- (no supplier types listed)'
+  return `Product: ${analysis.productName}
+Site: ${site.label}
+Search keyword: ${keyword}
+Source cost: $${analysis.priceRangeLow}–$${analysis.priceRangeHigh}
+Suggested retail: $${analysis.suggestedRetail} (${analysis.marginPercent}% margin)
+Suppliers:
+${supplierLines}`
 }
 
 interface SmartSourcingProps {
@@ -52,6 +98,7 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<SourcingResult | null>(null)
+  const [copiedSite, setCopiedSite] = useState<string | null>(null)
 
   function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -124,7 +171,11 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
     }
   }
 
-  const links = result ? searchLinks(result.analysis, input) : null
+  async function copyBrief(site: SourcingSite, analysis: SourcingAnalysis, keyword: string) {
+    await navigator.clipboard.writeText(buildSiteBrief(site, analysis, keyword))
+    setCopiedSite(site.key)
+    setTimeout(() => setCopiedSite((prev) => (prev === site.key ? null : prev)), 1500)
+  }
 
   return (
     <div className="space-y-6">
@@ -203,13 +254,30 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2">
-                <a href={links!.ali1688} target="_blank" rel="noreferrer">
-                  <Button variant="secondary">Search 1688</Button>
-                </a>
-                <a href={links!.basetao} target="_blank" rel="noreferrer">
-                  <Button variant="secondary">Search Basetao</Button>
-                </a>
+              <div>
+                <h4 className="mb-2 text-sm font-semibold text-brand-text">Search by site</h4>
+                <div className="space-y-2">
+                  {SOURCING_SITES.map((site) => {
+                    const keyword = siteKeyword(site, result.analysis, input)
+                    return (
+                      <div
+                        key={site.key}
+                        className="flex flex-wrap items-center gap-2 rounded-md border border-brand-border p-2"
+                      >
+                        <span className="min-w-[90px] text-sm font-medium text-brand-text">{site.label}</span>
+                        <a href={site.buildUrl(keyword)} target="_blank" rel="noreferrer">
+                          <Button variant="secondary">Open</Button>
+                        </a>
+                        <Button
+                          variant="ghost"
+                          onClick={() => copyBrief(site, result.analysis!, keyword)}
+                        >
+                          {copiedSite === site.key ? 'Copied!' : 'Copy brief'}
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
 
               {result.liveListings && result.liveListings.length > 0 ? (
