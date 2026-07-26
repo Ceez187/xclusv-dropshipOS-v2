@@ -64,6 +64,30 @@ function siteKeyword(site: SourcingSite, analysis: SourcingAnalysis | null, fall
   return (site.useZh ? zh || en : en || zh) || fallbackInput
 }
 
+// If the user pasted an actual product URL from one of these sites (rather
+// than a keyword/description), link straight to that item on its own site
+// instead of a re-derived search query — the other sites still get a search
+// link since we don't have a direct URL for them.
+const SITE_HOST_PATTERNS: { pattern: RegExp; key: string }[] = [
+  { pattern: /(^|\.)1688\.com$/, key: 'ali1688' },
+  { pattern: /(^|\.)taobao\.com$/, key: 'taobao' },
+  { pattern: /(^|\.)aliexpress\.com$/, key: 'aliexpress' },
+  { pattern: /(^|\.)basetao\.com$/, key: 'basetao' },
+]
+
+function detectDirectItemUrl(input: string): { key: string; url: string } | null {
+  const trimmed = input.trim()
+  if (!/^https?:\/\//i.test(trimmed)) return null
+  let hostname: string
+  try {
+    hostname = new URL(trimmed).hostname
+  } catch {
+    return null
+  }
+  const match = SITE_HOST_PATTERNS.find((p) => p.pattern.test(hostname))
+  return match ? { key: match.key, url: trimmed } : null
+}
+
 function buildSiteBrief(site: SourcingSite, analysis: SourcingAnalysis, keyword: string) {
   const supplierLines = analysis.suppliers?.length
     ? analysis.suppliers
@@ -98,7 +122,8 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<SourcingResult | null>(null)
-  const [copiedSite, setCopiedSite] = useState<string | null>(null)
+  const [copiedBriefSite, setCopiedBriefSite] = useState<string | null>(null)
+  const [copiedKeywordSite, setCopiedKeywordSite] = useState<string | null>(null)
 
   function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -173,8 +198,14 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
 
   async function copyBrief(site: SourcingSite, analysis: SourcingAnalysis, keyword: string) {
     await navigator.clipboard.writeText(buildSiteBrief(site, analysis, keyword))
-    setCopiedSite(site.key)
-    setTimeout(() => setCopiedSite((prev) => (prev === site.key ? null : prev)), 1500)
+    setCopiedBriefSite(site.key)
+    setTimeout(() => setCopiedBriefSite((prev) => (prev === site.key ? null : prev)), 1500)
+  }
+
+  async function copyKeyword(site: SourcingSite, keyword: string) {
+    await navigator.clipboard.writeText(keyword)
+    setCopiedKeywordSite(site.key)
+    setTimeout(() => setCopiedKeywordSite((prev) => (prev === site.key ? null : prev)), 1500)
   }
 
   return (
@@ -257,26 +288,38 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
               <div>
                 <h4 className="mb-2 text-sm font-semibold text-brand-text">Search by site</h4>
                 <div className="space-y-2">
-                  {SOURCING_SITES.map((site) => {
-                    const keyword = siteKeyword(site, result.analysis, input)
-                    return (
-                      <div
-                        key={site.key}
-                        className="flex flex-wrap items-center gap-2 rounded-md border border-brand-border p-2"
-                      >
-                        <span className="min-w-[90px] text-sm font-medium text-brand-text">{site.label}</span>
-                        <a href={site.buildUrl(keyword)} target="_blank" rel="noreferrer">
-                          <Button variant="secondary">Open</Button>
-                        </a>
-                        <Button
-                          variant="ghost"
-                          onClick={() => copyBrief(site, result.analysis!, keyword)}
+                  {(() => {
+                    const directItem = detectDirectItemUrl(input)
+                    return SOURCING_SITES.map((site) => {
+                      const keyword = siteKeyword(site, result.analysis, input)
+                      const isDirect = directItem?.key === site.key
+                      const openUrl = isDirect ? directItem!.url : site.buildUrl(keyword)
+                      return (
+                        <div
+                          key={site.key}
+                          className="rounded-md border border-brand-border p-2"
                         >
-                          {copiedSite === site.key ? 'Copied!' : 'Copy brief'}
-                        </Button>
-                      </div>
-                    )
-                  })}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="min-w-[90px] text-sm font-medium text-brand-text">{site.label}</span>
+                            <a href={openUrl} target="_blank" rel="noreferrer">
+                              <Button variant="secondary">{isDirect ? 'Open item' : 'Search'}</Button>
+                            </a>
+                            <Button variant="ghost" onClick={() => copyKeyword(site, keyword)}>
+                              {copiedKeywordSite === site.key ? 'Copied!' : 'Copy search text'}
+                            </Button>
+                            <Button variant="ghost" onClick={() => copyBrief(site, result.analysis!, keyword)}>
+                              {copiedBriefSite === site.key ? 'Copied!' : 'Copy brief'}
+                            </Button>
+                          </div>
+                          {!isDirect && (
+                            <p className="mt-1 truncate text-xs text-brand-muted">
+                              Paste into {site.label}'s search box: <span className="text-brand-text">{keyword}</span>
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
                 </div>
               </div>
 
