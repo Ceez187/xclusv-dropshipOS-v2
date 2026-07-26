@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext'
 import { UsageProvider } from './context/UsageContext'
 import AuthPage from './pages/AuthPage'
 import Layout from './components/Layout'
+import HowItWorks from './modules/HowItWorks'
 import SmartSourcing from './modules/SmartSourcing'
 import Vendors from './modules/Vendors'
 import ListingGenerator from './modules/ListingGenerator'
@@ -13,6 +14,7 @@ import CustomerIntelligence from './modules/CustomerIntelligence'
 import type { Tab } from './types'
 
 const TABS: Tab[] = [
+  { id: 'how-it-works', label: 'How It Works' },
   { id: 'sourcing', label: 'Smart Sourcing' },
   { id: 'vendors', label: 'Vendors' },
   { id: 'listings', label: 'Listings' },
@@ -36,6 +38,7 @@ function Workspace() {
   return (
     <UsageProvider>
       <Layout tabs={TABS} active={active} onChange={setActive}>
+        {active === 'how-it-works' && <HowItWorks />}
         {active === 'sourcing' && <SmartSourcing onSendToVendors={sendToVendors} />}
         {active === 'vendors' && (
           <Vendors draftItem={vendorDraftItem} onDraftConsumed={() => setVendorDraftItem(null)} />
