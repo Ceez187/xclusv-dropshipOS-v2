@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react'
 import Card from '../../components/ui/Card'
+import Button from '../../components/ui/Button'
+
+const SEEN_KEY = 'dropshipos:how-it-works-seen'
 
 interface Step {
   n: number
@@ -45,6 +49,29 @@ const STEPS: Step[] = [
 ]
 
 export default function HowItWorks() {
+  const [alreadySeen] = useState(() => localStorage.getItem(SEEN_KEY) === 'true')
+  const [expanded, setExpanded] = useState(!alreadySeen)
+
+  useEffect(() => {
+    localStorage.setItem(SEEN_KEY, 'true')
+  }, [])
+
+  if (!expanded) {
+    return (
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-bold text-brand-gold">How DropshipOS works</h2>
+            <p className="text-sm text-brand-muted">You've seen this guide already — tap to view it again.</p>
+          </div>
+          <Button variant="secondary" onClick={() => setExpanded(true)}>
+            Show guide
+          </Button>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -71,6 +98,12 @@ export default function HowItWorks() {
           up right where you left off.
         </p>
       </Card>
+
+      <div className="text-right">
+        <Button variant="ghost" onClick={() => setExpanded(false)}>
+          Collapse this guide
+        </Button>
+      </div>
     </div>
   )
 }
