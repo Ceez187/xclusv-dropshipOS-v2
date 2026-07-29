@@ -8,7 +8,7 @@ const RESPONSE_SHAPE = `{
   "priceRangeHigh": number,       // USD, high end of 1688/Taobao unit cost
   "suggestedRetail": number,      // USD suggested US retail price
   "marginPercent": number,        // approximate margin at suggested retail
-  "suppliers": [ { "type": string, "moq": string, "notes": string } ],
+  "suppliers": [ { "type": string, "moq": string, "notes": string } ], // list 5-6 distinct supplier options, spanning 1688, Taobao, AliExpress, and a Basetao agent — include more than one option per channel where realistic (e.g. two different 1688 supplier profiles at different price/quality tiers)
   "searchKeywordZh": string,      // Chinese search keyword for 1688/Taobao
   "searchKeywordEn": string       // English keyword for reference
 }`
