@@ -53,6 +53,13 @@ fly deploy
 
 Once the proxy is live, update `VITE_PROXY_URL` in Netlify to the Fly.io URL and redeploy the frontend.
 
+**Proxy → Render (alternative, no CLI needed)**:
+Render's web dashboard can get confused about relative paths when the Dockerfile lives in a subfolder, so there's a second Dockerfile at the **repo root** (`/Dockerfile`) purely for Render — it explicitly copies from `server/`, so Render's defaults (blank Root Directory, blank Docker Build Context Directory, Dockerfile Path = `Dockerfile`) just work with no path juggling. To deploy:
+1. Render dashboard → New → Web Service → connect this repo, branch `claude/dropshipos-phase-1-rebuild-hqz99s`
+2. Leave Root Directory, Docker Build Context Directory blank; set Dockerfile Path to `Dockerfile`
+3. Add the same env vars as the Fly.io section above
+4. Deploy — Render gives you a URL like `https://xxxx.onrender.com`, use that as `VITE_PROXY_URL`
+
 ## 5. Test checklist before calling it done
 
 - [ ] Sign up creates a `user_usage` row automatically
