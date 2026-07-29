@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { callSourcing, callVision, ApiError } from '../../lib/api'
 import { useSupabaseTable } from '../../lib/useSupabaseTable'
 import { useUsage } from '../../context/UsageContext'
@@ -120,11 +120,31 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
   const [urlInput, setUrlInput] = useState('')
   const [descriptionInput, setDescriptionInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const [error, setError] = useState('')
   const [result, setResult] = useState<SourcingResult | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [copiedBriefSite, setCopiedBriefSite] = useState<string | null>(null)
   const [copiedKeywordSite, setCopiedKeywordSite] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (loading) {
+      setProgress(8)
+      progressTimer.current = setInterval(() => {
+        setProgress((p) => (p < 90 ? p + (90 - p) * 0.12 : p))
+      }, 350)
+    } else if (progressTimer.current) {
+      clearInterval(progressTimer.current)
+      progressTimer.current = null
+      setProgress((p) => (p > 0 ? 100 : 0))
+      const reset = setTimeout(() => setProgress(0), 500)
+      return () => clearTimeout(reset)
+    }
+    return () => {
+      if (progressTimer.current) clearInterval(progressTimer.current)
+    }
+  }, [loading])
 
   function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -286,6 +306,18 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
           <Button type="submit" disabled={loading || (!imageFile && !urlInput.trim() && !descriptionInput.trim())}>
             {loading ? 'Analyzing…' : '🔍 Find Suppliers + Brief'}
           </Button>
+
+          {loading && (
+            <div className="space-y-1">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-black/30">
+                <div
+                  className="h-full rounded-full bg-brand-gold transition-[width] duration-300 ease-out"
+                  style={{ width: `${Math.round(progress)}%` }}
+                />
+              </div>
+              <p className="text-xs text-brand-muted">Analyzing product — this can take 10-30 seconds…</p>
+            </div>
+          )}
         </form>
 
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
