@@ -70,6 +70,15 @@ Render's web dashboard can get confused about relative paths when the Dockerfile
 - [ ] Vision (image upload) sourcing works without timing out
 - [ ] Every module's create/edit/delete actually persists to Supabase (spot check the table directly in the Supabase dashboard)
 
+## Security notes
+
+- **Customer/vendor/order data** lives in Postgres tables with row-level security (`auth.uid() = user_id`) — enforced by the database itself, not just app code, so one account can never read or write another's rows even if the frontend were tampered with.
+- **Secrets** (`ANTHROPIC_API_KEY`, `RAPIDAPI_KEY`, `SUPABASE_SERVICE_KEY`) only ever live server-side in `server/`; the browser only ever sees the Supabase `anon` key, which is meant to be public and is itself constrained by RLS.
+- **AI calls are proxied**, never made directly from the browser, and are gated by `auth` (valid Supabase session required) + `enforceUsageLimit` (per-user monthly quota) before any Anthropic/RapidAPI call runs. `max_tokens` is capped server-side regardless of what a caller requests, since it directly drives API cost.
+- The proxy sets standard security headers (`helmet`) and rate-limits `/api/*` (20 req/min/IP) as a backstop against a single caller hammering the AI endpoints faster than the per-user quota check alone would catch.
+- `user_usage` is select-only from the client — actual usage increments only happen server-side via the service-role key, so a user can't edit their own quota.
+- Customer analysis prompts only send the customer's name and order history to Claude, never their email — minimizing PII sent to a third-party API.
+
 ## Project layout
 
 ```
