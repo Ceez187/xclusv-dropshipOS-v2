@@ -70,6 +70,24 @@ Render's web dashboard can get confused about relative paths when the Dockerfile
 - [ ] Vision (image upload) sourcing works without timing out
 - [ ] Every module's create/edit/delete actually persists to Supabase (spot check the table directly in the Supabase dashboard)
 
+## New signup email alerts (optional)
+
+Get an email to your own inbox every time someone signs up, sent via your own Gmail account (no third-party email service needed):
+
+1. Enable **2-Step Verification** on your Google account (myaccount.google.com/security), then generate an **App Password** at myaccount.google.com/apppasswords.
+2. On Render, add three environment variables to the proxy service:
+   - `GMAIL_USER` — your Gmail address (alerts are sent from and to this same address)
+   - `GMAIL_APP_PASSWORD` — the 16-character App Password from step 1
+   - `WEBHOOK_SECRET` — any long random string (this authenticates the webhook call below, since it isn't a real user request)
+3. In Supabase, go to **Database → Webhooks → Create a new webhook**:
+   - Table: `user_usage`, schema `public`
+   - Events: `Insert`
+   - Type: `HTTP Request`, method `POST`
+   - URL: `https://<your-render-url>/api/webhooks/new-signup`
+   - Add an HTTP header: `x-webhook-secret` = the same value as `WEBHOOK_SECRET` above
+
+`user_usage` already gets a row inserted automatically on every signup (via the `handle_new_user` trigger from `0001_init.sql`), so this fires once per new account. The webhook endpoint checks the `x-webhook-secret` header before doing anything, so it can't be triggered by anyone else.
+
 ## Security notes
 
 - **Customer/vendor/order data** lives in Postgres tables with row-level security (`auth.uid() = user_id`) — enforced by the database itself, not just app code, so one account can never read or write another's rows even if the frontend were tampered with.
