@@ -4,7 +4,7 @@ import { useSupabaseTable } from '../../lib/useSupabaseTable'
 import { useUsage } from '../../context/UsageContext'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
-import Badge from '../../components/ui/Badge'
+import Badge, { type BadgeColor } from '../../components/ui/Badge'
 import { buildTextSourcingMessages, buildImageSourcingMessages, parseAnalysis } from './prompts'
 import type { LiveListing, SavedItem, SourcingAnalysis } from '../../types'
 
@@ -22,6 +22,12 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
+}
+
+const AUTHENTICITY_BADGE: Record<string, { label: string; color: BadgeColor }> = {
+  verified: { label: '✓ Verified original', color: 'green' },
+  risk: { label: '⚠ Counterfeit risk', color: 'red' },
+  unknown: { label: 'Unverified', color: 'slate' },
 }
 
 interface SourcingSite {
@@ -348,12 +354,19 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                 <div>
                   <h4 className="mb-2 text-sm font-semibold text-brand-text">Supplier types</h4>
                   <div className="space-y-2">
-                    {result.analysis.suppliers.map((s, i) => (
-                      <div key={i} className="rounded-md border border-brand-border p-2 text-sm">
-                        <span className="font-medium">{s.type}</span> — MOQ {s.moq}
-                        {s.notes && <span className="text-brand-muted"> · {s.notes}</span>}
-                      </div>
-                    ))}
+                    {result.analysis.suppliers.map((s, i) => {
+                      const badge = AUTHENTICITY_BADGE[s.authenticity] ?? AUTHENTICITY_BADGE.unknown
+                      return (
+                        <div key={i} className="rounded-md border border-brand-border p-2 text-sm">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{s.type}</span>
+                            <span className="text-brand-muted">MOQ {s.moq}</span>
+                            <Badge color={badge.color}>{badge.label}</Badge>
+                          </div>
+                          {s.notes && <p className="mt-1 text-brand-muted">{s.notes}</p>}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}

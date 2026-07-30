@@ -77,7 +77,12 @@ export interface SourcingAnalysis {
   priceRangeHigh: number
   suggestedRetail: number
   marginPercent: number
-  suppliers: { type: string; moq: string; notes: string }[]
+  suppliers: {
+    type: string
+    moq: string
+    notes: string
+    authenticity: 'verified' | 'risk' | 'unknown'
+  }[]
   searchKeywordZh: string
   searchKeywordEn: string
 }
