@@ -48,13 +48,22 @@ const STEPS: Step[] = [
   },
 ]
 
-export default function HowItWorks() {
+interface HowItWorksProps {
+  onCollapse?: () => void
+}
+
+export default function HowItWorks({ onCollapse }: HowItWorksProps) {
   const [alreadySeen] = useState(() => localStorage.getItem(SEEN_KEY) === 'true')
   const [expanded, setExpanded] = useState(!alreadySeen)
 
   useEffect(() => {
     localStorage.setItem(SEEN_KEY, 'true')
   }, [])
+
+  function collapse() {
+    setExpanded(false)
+    onCollapse?.()
+  }
 
   if (!expanded) {
     return (
@@ -100,7 +109,7 @@ export default function HowItWorks() {
       </Card>
 
       <div className="text-right">
-        <Button variant="ghost" onClick={() => setExpanded(false)}>
+        <Button variant="ghost" onClick={collapse}>
           Collapse this guide
         </Button>
       </div>

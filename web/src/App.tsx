@@ -38,7 +38,7 @@ function Workspace() {
   return (
     <UsageProvider>
       <Layout tabs={TABS} active={active} onChange={setActive}>
-        {active === 'how-it-works' && <HowItWorks />}
+        {active === 'how-it-works' && <HowItWorks onCollapse={() => setActive('sourcing')} />}
         {active === 'sourcing' && <SmartSourcing onSendToVendors={sendToVendors} />}
         {active === 'vendors' && (
           <Vendors draftItem={vendorDraftItem} onDraftConsumed={() => setVendorDraftItem(null)} />
