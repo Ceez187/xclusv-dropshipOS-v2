@@ -11,6 +11,7 @@ import PricingCalculator from './modules/PricingCalculator'
 import AdScriptGenerator from './modules/AdScriptGenerator'
 import OrderTracker from './modules/OrderTracker'
 import CustomerIntelligence from './modules/CustomerIntelligence'
+import KnowledgeBase from './modules/KnowledgeBase'
 import type { Tab } from './types'
 
 const TABS: Tab[] = [
@@ -22,6 +23,7 @@ const TABS: Tab[] = [
   { id: 'ads', label: 'Ad Scripts', icon: '🎬' },
   { id: 'orders', label: 'Orders', icon: '📦' },
   { id: 'customers', label: 'Customers', icon: '👥' },
+  { id: 'knowledge', label: 'Knowledge Base', icon: '📚' },
 ]
 
 function Workspace() {
@@ -48,6 +50,7 @@ function Workspace() {
         {active === 'ads' && <AdScriptGenerator />}
         {active === 'orders' && <OrderTracker />}
         {active === 'customers' && <CustomerIntelligence />}
+        {active === 'knowledge' && <KnowledgeBase />}
       </Layout>
     </UsageProvider>
   )

@@ -107,3 +107,19 @@ export interface Tab {
   label: string
   icon?: string
 }
+
+export interface GlossaryTerm {
+  id: string
+  term: string
+  definition: string
+  sort_order: number
+  created_at: string
+}
+
+export interface FaqItem {
+  id: string
+  question: string
+  answer: string
+  sort_order: number
+  created_at: string
+}

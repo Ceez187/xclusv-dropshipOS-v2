@@ -5,12 +5,12 @@ A from-scratch rebuild: React + Vite frontend (`/web`), Express proxy (`/server`
 ## 1. Set up Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open the SQL editor and run `supabase/migrations/0001_init.sql`, then `0002_user_usage_rls.sql`, in order.
+2. Open the SQL editor and run `supabase/migrations/0001_init.sql`, then `0002_user_usage_rls.sql`, then `0003_knowledge_base.sql`, in order.
 3. Grab your project's `URL`, `anon` public key, and `service_role` secret key from Settings → API.
 
-`0001_init.sql` is the spec's schema verbatim, which left `user_usage` without RLS (only `vendors`, `orders`, `customers`, and `saved_items` have policies). `0002_user_usage_rls.sql` closes that gap with a `select`-only policy — the frontend only ever reads its own row (`UsageContext`); all writes go through the proxy's service key, which bypasses RLS anyway.
+`0001_init.sql` is the spec's schema verbatim, which left `user_usage` without RLS (only `vendors`, `orders`, `customers`, and `saved_items` have policies). `0002_user_usage_rls.sql` closes that gap with a `select`-only policy — the frontend only ever reads its own row (`UsageContext`); all writes go through the proxy's service key, which bypasses RLS anyway. `0003_knowledge_base.sql` adds `glossary_terms` and `faq_items` for the Knowledge Base tab, seeded with starter content — these are read-only from the app (no insert/update/delete policy), so add or edit entries directly in the Supabase Table Editor.
 
-Both files are safe to re-run (`create table if not exists`, `drop policy if exists` before each `create policy`, etc.) — if a previous attempt partially failed partway through (e.g. `user_usage` got created but a later table didn't), just re-run the same file rather than trying to hand-patch it.
+All files are safe to re-run (`create table if not exists`, `drop policy if exists` before each `create policy`, `on conflict do nothing` on seed rows, etc.) — if a previous attempt partially failed partway through (e.g. `user_usage` got created but a later table didn't), just re-run the same file rather than trying to hand-patch it.
 
 ## 2. Configure environment variables
 
