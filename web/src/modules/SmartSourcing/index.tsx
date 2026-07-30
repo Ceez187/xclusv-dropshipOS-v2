@@ -402,6 +402,12 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                               Paste into {site.label}'s search box: <span className="text-brand-text">{keyword}</span>
                             </p>
                           )}
+                          <div className="mt-2 rounded-md bg-black/30 p-2">
+                            <p className="mb-1 text-xs font-medium text-brand-muted">Brief (copied by "Copy brief"):</p>
+                            <pre className="whitespace-pre-wrap break-words text-xs text-brand-text">
+                              {buildSiteBrief(site, result.analysis!, keyword)}
+                            </pre>
+                          </div>
                         </div>
                       )
                     })
