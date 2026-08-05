@@ -30,6 +30,23 @@ const AUTHENTICITY_BADGE: Record<string, { label: string; color: BadgeColor }> =
   unknown: { label: 'Unverified', color: 'slate' },
 }
 
+// Guarantees genuine/verified-first, lowest-MOQ-first ordering regardless of
+// how well the model followed the prompt's sort instructions on a given call.
+const AUTHENTICITY_RANK: Record<string, number> = { verified: 0, unknown: 1, risk: 2 }
+
+function extractMoqNumber(moq: string): number {
+  const match = moq?.match(/\d+/)
+  return match ? Number(match[0]) : Number.POSITIVE_INFINITY
+}
+
+function sortSuppliers(suppliers: SourcingAnalysis['suppliers']): SourcingAnalysis['suppliers'] {
+  return [...suppliers].sort((a, b) => {
+    const rankDiff = (AUTHENTICITY_RANK[a.authenticity] ?? 1) - (AUTHENTICITY_RANK[b.authenticity] ?? 1)
+    if (rankDiff !== 0) return rankDiff
+    return extractMoqNumber(a.moq) - extractMoqNumber(b.moq)
+  })
+}
+
 interface SourcingSite {
   key: string
   label: string
@@ -197,6 +214,10 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
         ;({ data: analysis, raw } = parseAnalysis<SourcingAnalysis>(res.content))
         liveListings = (res.liveListings as LiveListing[] | null) ?? null
         degraded = !!res.degraded
+      }
+
+      if (analysis?.suppliers?.length) {
+        analysis = { ...analysis, suppliers: sortSuppliers(analysis.suppliers) }
       }
 
       setResult({ analysis, raw, liveListings, degraded })
