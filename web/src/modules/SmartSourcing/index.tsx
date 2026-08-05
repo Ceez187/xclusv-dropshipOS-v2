@@ -420,7 +420,8 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                           </div>
                           {!isDirect && (
                             <p className="mt-1 truncate text-xs text-brand-muted">
-                              Paste into {site.label}'s search box: <span className="text-brand-text">{keyword}</span>
+                              Paste into {site.label}'s search box for similar items:{' '}
+                              <span className="text-brand-text">{keyword}</span>
                             </p>
                           )}
                         </div>
