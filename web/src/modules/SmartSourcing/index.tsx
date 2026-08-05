@@ -76,7 +76,10 @@ const SOURCING_SITES: SourcingSite[] = [
   {
     key: 'basetao',
     label: 'Basetao',
-    useZh: false,
+    // Basetao aggregates listings from Taobao/1688/Weidian — all
+    // Chinese-language platforms — so the Chinese keyword matches far
+    // better than the English one.
+    useZh: true,
     // Basetao's search box is client-side JS, not URL-parameter driven —
     // there's no way to deep-link with a pre-filled keyword, so this just
     // opens the real search page and the user pastes the copied text in.
