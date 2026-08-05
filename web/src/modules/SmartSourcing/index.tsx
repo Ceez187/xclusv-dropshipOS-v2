@@ -77,7 +77,10 @@ const SOURCING_SITES: SourcingSite[] = [
     key: 'basetao',
     label: 'Basetao',
     useZh: false,
-    buildUrl: (kw) => `https://www.basetao.com/goods/search.html?keyword=${encodeURIComponent(kw)}`,
+    // Basetao's search box is client-side JS, not URL-parameter driven —
+    // there's no way to deep-link with a pre-filled keyword, so this just
+    // opens the real search page and the user pastes the copied text in.
+    buildUrl: () => 'https://www.basetao.com/best-taobao-agent-service/search_products.html',
   },
 ]
 
