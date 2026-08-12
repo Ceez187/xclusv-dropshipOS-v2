@@ -13,7 +13,7 @@ function buildMessages(form) {
   return [
     {
       role: 'user',
-      content: `Write a Shopify-ready product listing for this dropshipped product.\nName: ${form.name}\nCost: $${form.cost}\nFeatures: ${form.features}\n\nRespond with ONLY JSON, no prose, no markdown fences, matching exactly this shape:\n{ "title": string, "description": string, "tags": [string] }`,
+      content: `Write a WooCommerce-ready product listing for this dropshipped product.\nName: ${form.name}\nCost: $${form.cost}\nFeatures: ${form.features}\n\nRespond with ONLY JSON, no prose, no markdown fences, matching exactly this shape:\n{ "title": string, "description": string, "tags": [string] }`,
     },
   ]
 }
