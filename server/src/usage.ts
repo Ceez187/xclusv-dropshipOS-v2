@@ -11,13 +11,17 @@ export const ACTION_COST: Record<string, number> = {
   default: 1,
 }
 
+export async function getUsageRow(userId: string): Promise<UsageRow> {
+  const { data: usage } = await supabase.from('user_usage').select('*').eq('user_id', userId).single()
+  return usage as UsageRow
+}
+
 export async function checkUsage(
   userId: string,
   actionType: ActionType,
   needsRapidApi?: boolean
 ): Promise<UsageCheckResult> {
-  const { data: usage } = await supabase.from('user_usage').select('*').eq('user_id', userId).single()
-  const row = usage as UsageRow
+  const row = await getUsageRow(userId)
   const cost = ACTION_COST[actionType] ?? ACTION_COST.default
 
   if (row.actions_used + cost > row.actions_limit) {

@@ -1,10 +1,26 @@
 import express from 'express'
 import { auth } from '../middleware/auth'
 import { enforceUsageLimit } from '../middleware/enforceUsage'
-import { checkUsage, burnUsage } from '../usage'
+import { checkUsage, getUsageRow, burnUsage, ACTION_COST } from '../usage'
 import { anthropic, MODEL } from '../anthropic'
 
 const router = express.Router()
+
+// RapidAPI marketplace endpoints wrap results differently (some return a
+// bare array, most nest it under an envelope key) — unwrap the common
+// shapes rather than assuming one, so an envelope we don't expect degrades
+// cleanly (liveListings: null) instead of getting billed as a successful
+// live-listings call the client can't actually render anything from.
+function normalizeListings(raw: unknown): unknown[] | null {
+  if (Array.isArray(raw)) return raw
+  if (raw && typeof raw === 'object') {
+    for (const key of ['results', 'data', 'items', 'products', 'listings']) {
+      const val = (raw as Record<string, unknown>)[key]
+      if (Array.isArray(val)) return val
+    }
+  }
+  return null
+}
 
 // Smart Sourcing: Claude analysis + optional RapidAPI live listings, with
 // graceful degrade — a RapidAPI failure or exhausted RapidAPI quota never
@@ -21,7 +37,7 @@ router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => 
       messages: req.body.messages,
     })
 
-    let liveListings: unknown = null
+    let liveListings: unknown[] | null = null
     let usedRapidApi = false
     const preCheck = await checkUsage(req.user.id, 'smart_sourcing_live', true)
 
@@ -36,27 +52,24 @@ router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => 
             },
           }
         )
-        liveListings = await rapidRes.json()
-        usedRapidApi = true
+        liveListings = normalizeListings(await rapidRes.json())
+        usedRapidApi = liveListings !== null
       } catch (e) {
         console.error('RapidAPI failed, degrading', e)
       }
     }
 
-    // Re-check rather than reuse req.usageCheck: usedRapidApi may have
-    // raised the cost from 'smart_sourcing' (3) to 'smart_sourcing_live' (5)
-    // since the middleware ran, so the burn needs a fresh snapshot + cost.
-    const finalCheck = await checkUsage(
-      req.user.id,
-      usedRapidApi ? 'smart_sourcing_live' : 'smart_sourcing',
-      usedRapidApi
-    )
-    await burnUsage(
-      req.user.id,
-      finalCheck.ok ? finalCheck.usage : req.usageCheck.usage,
-      finalCheck.ok ? finalCheck.cost : req.usageCheck.cost,
-      finalCheck.ok && usedRapidApi
-    )
+    // Burn against a fresh row rather than req.usageCheck's pre-request
+    // snapshot: usedRapidApi may have raised the actual cost from
+    // 'smart_sourcing' (3) to 'smart_sourcing_live' (5) since the middleware
+    // ran, and the RapidAPI call already happened by this point regardless
+    // of whether a concurrent request has since put the account over its
+    // limit — so this always bills what actually happened, rather than
+    // silently under-billing (and under-counting rapidapi_calls_used) on
+    // that race.
+    const cost = ACTION_COST[usedRapidApi ? 'smart_sourcing_live' : 'smart_sourcing']
+    const freshUsage = await getUsageRow(req.user.id)
+    await burnUsage(req.user.id, freshUsage, cost, usedRapidApi)
 
     res.json({ content: analysis.content, liveListings, degraded: !usedRapidApi })
   } catch (err) {

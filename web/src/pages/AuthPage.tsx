@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { isAuthRetryableFetchError } from '@supabase/supabase-js'
 import { useAuth } from '../context/AuthContext'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -26,7 +27,15 @@ export default function AuthPage() {
     setSubmitting(false)
 
     if (authError) {
-      setError(authError.message)
+      // A raw network failure (Supabase unreachable — paused project, wrong
+      // URL, DNS/offline) surfaces here as the browser's own fetch error
+      // text ("Load failed" on Safari, "Failed to fetch" on Chromium),
+      // which reads as a broken app rather than a connectivity problem.
+      setError(
+        isAuthRetryableFetchError(authError)
+          ? "Can't reach the server right now. Check your connection and try again shortly."
+          : authError.message
+      )
       return
     }
 

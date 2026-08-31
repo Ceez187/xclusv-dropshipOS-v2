@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useAuth } from './context/AuthContext'
 import { UsageProvider } from './context/UsageContext'
+import { isSupabaseConfigured } from './lib/supabaseClient'
 import AuthPage from './pages/AuthPage'
+import ConfigError from './pages/ConfigError'
 import Layout from './components/Layout'
 import HowItWorks from './modules/HowItWorks'
 import SmartSourcing from './modules/SmartSourcing'
@@ -58,6 +60,10 @@ function Workspace() {
 
 export default function App() {
   const { session, loading } = useAuth()
+
+  if (!isSupabaseConfigured) {
+    return <ConfigError />
+  }
 
   if (loading) {
     return (
