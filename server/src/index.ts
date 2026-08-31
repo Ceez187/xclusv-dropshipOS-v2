@@ -8,6 +8,7 @@ import claudeRoute from './routes/claude'
 import visionRoute from './routes/vision'
 import sourcingRoute from './routes/sourcing'
 import webhooksRoute from './routes/webhooks'
+import authEventsRoute from './routes/authEvents'
 
 const app = express()
 
@@ -38,6 +39,7 @@ app.use('/api/claude', claudeRoute)
 app.use('/api/vision', visionRoute)
 app.use('/api/sourcing', sourcingRoute)
 app.use('/api/webhooks', webhooksRoute)
+app.use('/api/auth-events', authEventsRoute)
 
 const port = process.env.PORT || 8080
 app.listen(port, () => console.log(`Proxy running on :${port}`))

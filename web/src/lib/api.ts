@@ -97,3 +97,18 @@ export async function callProxy(path: string, body: ProxyRequestBody): Promise<P
 export const callClaude = (body: ProxyRequestBody) => callProxy('/api/claude', body)
 export const callVision = (body: ProxyRequestBody) => callProxy('/api/vision', body)
 export const callSourcing = (body: ProxyRequestBody) => callProxy('/api/sourcing', body)
+
+// Fire-and-forget ping so the account owner gets an email when someone
+// signs in — see AuthPage.tsx's sign-in handler, which only calls this on
+// an explicit sign-in submit (not on silent token refreshes). Never throws:
+// a failed alert must not block or error out the user's sign-in.
+export async function notifyLogin(accessToken: string): Promise<void> {
+  try {
+    await fetch(`${PROXY_URL}/api/auth-events/login`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  } catch {
+    // best-effort only
+  }
+}

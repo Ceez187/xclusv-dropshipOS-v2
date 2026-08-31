@@ -70,23 +70,30 @@ Render's web dashboard can get confused about relative paths when the Dockerfile
 - [ ] Vision (image upload) sourcing works without timing out
 - [ ] Every module's create/edit/delete actually persists to Supabase (spot check the table directly in the Supabase dashboard)
 
-## New signup email alerts (optional)
+## Email alerts (optional)
 
-Get an email to your own inbox every time someone signs up, sent via your own Gmail account (no third-party email service needed):
+Get an email to your own inbox on new signups and on every login, sent via your own Gmail account (no third-party email service needed). Both alerts share the same Gmail setup:
 
 1. Enable **2-Step Verification** on your Google account (myaccount.google.com/security), then generate an **App Password** at myaccount.google.com/apppasswords.
-2. On Render, add three environment variables to the proxy service:
+2. On Render, add environment variables to the proxy service:
    - `GMAIL_USER` — your Gmail address (alerts are sent from and to this same address)
    - `GMAIL_APP_PASSWORD` — the 16-character App Password from step 1
-   - `WEBHOOK_SECRET` — any long random string (this authenticates the webhook call below, since it isn't a real user request)
-3. In Supabase, go to **Database → Webhooks → Create a new webhook**:
-   - Table: `user_usage`, schema `public`
-   - Events: `Insert`
-   - Type: `HTTP Request`, method `POST`
-   - URL: `https://<your-render-url>/api/webhooks/new-signup`
-   - Add an HTTP header: `x-webhook-secret` = the same value as `WEBHOOK_SECRET` above
+   - `WEBHOOK_SECRET` — any long random string, only needed for the signup webhook below (login alerts authenticate with the user's own session token instead)
+
+### New signup alert
+
+In Supabase, go to **Database → Webhooks → Create a new webhook**:
+- Table: `user_usage`, schema `public`
+- Events: `Insert`
+- Type: `HTTP Request`, method `POST`
+- URL: `https://<your-render-url>/api/webhooks/new-signup`
+- Add an HTTP header: `x-webhook-secret` = the same value as `WEBHOOK_SECRET` above
 
 `user_usage` already gets a row inserted automatically on every signup (via the `handle_new_user` trigger from `0001_init.sql`), so this fires once per new account. The webhook endpoint checks the `x-webhook-secret` header before doing anything, so it can't be triggered by anyone else.
+
+### Login alert
+
+No extra setup beyond the Gmail env vars above — the frontend pings `POST /api/auth-events/login` (authenticated with the signed-in user's own session token) right after a successful sign-in, and the proxy emails you. It only fires on an explicit sign-in submit, not on silent background token refreshes, so it won't spam you every time someone's browser tab just stays open.
 
 ## Security notes
 

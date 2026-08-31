@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { isAuthRetryableFetchError } from '@supabase/supabase-js'
 import { useAuth } from '../context/AuthContext'
+import { notifyLogin } from '../lib/api'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 
@@ -21,7 +22,7 @@ export default function AuthPage() {
     setInfo('')
     setSubmitting(true)
 
-    const { error: authError } =
+    const { data, error: authError } =
       mode === 'signin' ? await signIn(email, password) : await signUp(email, password)
 
     setSubmitting(false)
@@ -41,6 +42,8 @@ export default function AuthPage() {
 
     if (mode === 'signup') {
       setInfo('Account created. Check your email to confirm, then sign in.')
+    } else if (data.session) {
+      void notifyLogin(data.session.access_token)
     }
   }
 
