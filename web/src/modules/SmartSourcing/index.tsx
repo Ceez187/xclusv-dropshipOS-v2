@@ -342,9 +342,9 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
 
           {loading && (
             <div className="space-y-1">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-black/30">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-black/30 ring-1 ring-inset ring-white/5">
                 <div
-                  className="h-full rounded-full bg-brand-gold transition-[width] duration-300 ease-out"
+                  className="h-full rounded-full bg-gradient-to-r from-brand-gold via-brand-gold-light to-brand-accent shadow-[0_0_10px_-1px_var(--color-brand-gold)] transition-[width] duration-300 ease-out"
                   style={{ width: `${Math.round(progress)}%` }}
                 />
               </div>

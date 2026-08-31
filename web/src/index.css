@@ -8,15 +8,40 @@
   --color-status-delivered: #16a34a;
   --color-status-cancelled: #dc2626;
 
-  --color-brand-bg: #0a0a0a;
-  --color-brand-surface: #141414;
-  --color-brand-surface-hover: #1f1f1f;
-  --color-brand-border: #2a2a2a;
-  --color-brand-text: #e8e8e8;
-  --color-brand-muted: #8a8a8a;
+  --color-brand-bg: #08080c;
+  --color-brand-surface: #14141c;
+  --color-brand-surface-hover: #1e1e29;
+  --color-brand-border: #2a2a38;
+  --color-brand-text: #f0f0f5;
+  --color-brand-muted: #9494a8;
   --color-brand-gold: #c9a84c;
-  --color-brand-gold-light: #e2c06a;
+  --color-brand-gold-light: #f0cf6f;
   --color-brand-gold-dark: #7a6030;
+  --color-brand-accent: #22d3ee;
+  --color-brand-accent-light: #67e8f9;
+
+  --animate-fade-in: fade-in 0.35s ease-out;
+  --animate-glow-pulse: glow-pulse 2.4s ease-in-out infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
 }
 
 :root {
@@ -25,17 +50,50 @@
 
 body {
   @apply bg-brand-bg text-brand-text;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 15% -10%, color-mix(in srgb, var(--color-brand-gold) 16%, transparent), transparent),
+    radial-gradient(ellipse 700px 500px at 100% 10%, color-mix(in srgb, var(--color-brand-accent) 12%, transparent), transparent),
+    radial-gradient(ellipse 800px 600px at 50% 120%, color-mix(in srgb, var(--color-brand-gold) 8%, transparent), transparent);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+* {
+  scrollbar-color: var(--color-brand-gold-dark) var(--color-brand-surface);
+  scrollbar-width: thin;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-brand-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-gold-dark);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-gold);
 }
 
 @layer base {
   input,
   select,
   textarea {
-    @apply bg-brand-surface text-brand-text placeholder:text-brand-muted;
+    @apply bg-brand-surface text-brand-text placeholder:text-brand-muted transition-shadow duration-200;
   }
   input:focus,
   select:focus,
   textarea:focus {
     @apply border-brand-gold outline-none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 25%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

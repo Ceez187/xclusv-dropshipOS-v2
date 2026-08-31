@@ -8,15 +8,15 @@ interface TabNavProps {
 
 export default function TabNav({ tabs, active, onChange }: TabNavProps) {
   return (
-    <nav className="flex gap-1 overflow-x-auto border-b border-brand-border bg-brand-surface px-4">
+    <nav className="flex gap-1 overflow-x-auto border-b border-brand-border bg-brand-surface/60 backdrop-blur-sm px-3 py-2">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
-          className={`shrink-0 border-b-2 px-3 py-3 text-sm font-medium transition-colors ${
+          className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
             active === tab.id
-              ? 'border-brand-gold text-brand-gold'
-              : 'border-transparent text-brand-muted hover:text-brand-text'
+              ? 'bg-gradient-to-r from-brand-gold/20 to-brand-accent/10 text-brand-gold-light shadow-[0_0_14px_-4px_var(--color-brand-gold)] ring-1 ring-inset ring-brand-gold/30'
+              : 'text-brand-muted hover:bg-brand-surface-hover hover:text-brand-text'
           }`}
         >
           {tab.icon && <span className="mr-1.5">{tab.icon}</span>}

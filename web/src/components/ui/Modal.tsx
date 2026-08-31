@@ -12,8 +12,8 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-md rounded-lg border border-brand-border bg-brand-surface p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="animate-fade-in w-full max-w-md rounded-xl border border-brand-gold/20 bg-brand-surface/95 backdrop-blur-md p-6 shadow-2xl shadow-black/60 ring-1 ring-white/5">
         {title && <h2 className="mb-3 text-lg font-semibold text-brand-gold">{title}</h2>}
         <div className="text-sm text-brand-muted">{children}</div>
         {footer && <div className="mt-6 flex justify-end gap-2">{footer}</div>}
