@@ -22,7 +22,7 @@ export default function Layout({ tabs, active, onChange, children }: LayoutProps
     <div className="min-h-screen bg-brand-bg">
       <header className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3 border-b border-brand-gold/20 bg-brand-surface/80 px-4 py-3 backdrop-blur-md shadow-[0_1px_20px_-4px_var(--color-brand-gold)]">
         <div className="flex items-center gap-2">
-          <span className="bg-gradient-to-r from-brand-gold-light via-brand-gold to-brand-accent bg-clip-text text-lg font-bold tracking-wide text-transparent">
+          <span className="bg-gradient-to-r from-brand-gold-light via-brand-accent to-brand-accent2 bg-clip-text text-lg font-bold tracking-wide text-transparent">
             XCLUSV · DropshipOS
           </span>
         </div>

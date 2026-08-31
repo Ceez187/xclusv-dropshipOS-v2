@@ -47,7 +47,7 @@ export default function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-bg p-4">
       <Card className="w-full max-w-sm">
-        <h1 className="mb-1 bg-gradient-to-r from-brand-gold-light via-brand-gold to-brand-accent bg-clip-text text-xl font-bold text-transparent">
+        <h1 className="mb-1 bg-gradient-to-r from-brand-gold-light via-brand-accent to-brand-accent2 bg-clip-text text-xl font-bold text-transparent">
           XCLUSV · DropshipOS
         </h1>
         <p className="mb-6 text-sm text-brand-muted">
