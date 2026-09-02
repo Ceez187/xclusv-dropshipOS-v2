@@ -1,6 +1,6 @@
 import express from 'express'
 import { supabase } from '../supabase'
-import { sendNotificationEmail } from '../mailer'
+import { sendNotificationEmail, sendWelcomeEmail } from '../mailer'
 
 const router = express.Router()
 
@@ -21,10 +21,19 @@ router.post('/new-signup', async (req, res) => {
     const { data, error } = await supabase.auth.admin.getUserById(userId)
     if (error || !data.user) throw error ?? new Error('User not found')
 
-    await sendNotificationEmail(
-      'New DropshipOS signup',
-      `A new user just signed up:\n\nEmail: ${data.user.email}\nSigned up at: ${data.user.created_at}`
-    )
+    // Independent sends — a failure in one (e.g. the owner's inbox rejects
+    // it) shouldn't stop the customer's welcome email from going out, or
+    // vice versa.
+    const [ownerAlert, welcome] = await Promise.allSettled([
+      sendNotificationEmail(
+        'New DropshipOS signup',
+        `A new user just signed up:\n\nEmail: ${data.user.email}\nSigned up at: ${data.user.created_at}`
+      ),
+      data.user.email ? sendWelcomeEmail(data.user.email) : Promise.resolve(),
+    ])
+    if (ownerAlert.status === 'rejected') console.error('Owner signup alert failed', ownerAlert.reason)
+    if (welcome.status === 'rejected') console.error('Welcome email failed', welcome.reason)
+
     res.json({ ok: true })
   } catch (err) {
     console.error(err)
