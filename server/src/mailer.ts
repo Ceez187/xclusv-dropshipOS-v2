@@ -39,21 +39,86 @@ export async function sendNotificationEmail(subject: string, text: string): Prom
   await sendEmail(to, subject, text)
 }
 
-// Customer-facing welcome note, sent to the new user's own address.
+// Kept in sync by hand with web/src/modules/HowItWorks/index.tsx's STEPS —
+// same workflow, just phrased for an email instead of an in-app card.
+const APP_STEPS: { title: string; text: string }[] = [
+  {
+    title: 'Source a product',
+    text: 'Paste a product URL or description — or upload a photo — in Smart Sourcing to get an AI pricing analysis, supplier notes, and ready-to-use search links for 1688, Taobao, AliExpress, and Basetao.',
+  },
+  {
+    title: 'Find & message a supplier',
+    text: 'Save suppliers in Vendors, then use the built-in Order Builder to message them on WhatsApp, WeChat, Facebook, or Email — no copy-pasting between apps.',
+  },
+  {
+    title: 'Write your listing',
+    text: 'Use Listing Generator to turn a sourced product into a platform-ready title, description, and tags.',
+  },
+  {
+    title: 'Price it right',
+    text: 'Use Pricing Calculator to work out a retail price that covers your cost, shipping, and fees at the margin you want.',
+  },
+  {
+    title: 'Launch ads',
+    text: 'Generate TikTok, Meta, and YouTube Shorts ad scripts — hook, problem, solution, proof, and CTA — in Ad Scripts.',
+  },
+  {
+    title: 'Track every order',
+    text: 'Log each order in Orders from sourcing through delivery, with profit and status at a glance.',
+  },
+  {
+    title: 'Know your customers',
+    text: 'Use Customers to spot repeat buyers and get AI suggestions for reactivation and upsells.',
+  },
+]
+
+const DROPSHIPPING_PRIMER = `Dropshipping means you sell a product without holding any inventory yourself: a customer orders from you, you order that same item from a supplier (usually overseas), and the supplier ships it straight to the customer. You never touch the product — your job is picking the right item, pricing it to cover your cost plus a margin, and marketing it. Your profit is the gap between what the customer pays you and what the supplier charges you.`
+
+// Customer-facing welcome note, sent to the new user's own address —
+// explains what dropshipping is and walks through the app end to end, so a
+// brand-new user has enough context to act on their first sign-in instead
+// of landing on a blank dashboard.
 export async function sendWelcomeEmail(to: string): Promise<void> {
+  const stepsText = APP_STEPS.map((s, i) => `${i + 1}. ${s.title} — ${s.text}`).join('\n\n')
+
   const text = `Welcome to XCLUSV DropshipOS!
 
-Your account is ready. Sign in anytime to start sourcing products, generating listings, building ad scripts, and tracking orders — all in one place.
+NEW TO DROPSHIPPING?
+${DROPSHIPPING_PRIMER}
 
-Questions or feedback? Just reply to this email.
+HOW DROPSHIPOS WORKS
+${stepsText}
+
+Every module saves straight to your account — vendors, orders, customers, and saved listings sync across devices, so you can switch from phone to desktop mid-task and pick up right where you left off.
+
+Sign in anytime to get started. Questions or feedback? Just reply to this email.
 
 — XCLUSV`
 
+  const stepsHtml = APP_STEPS.map(
+    (s, i) => `
+      <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #eee">
+        <div style="min-width:26px;font-size:22px;font-weight:700;color:#c9a84c;line-height:1">${i + 1}</div>
+        <p style="margin:0;font-size:14px;line-height:1.5;color:#333">
+          <span style="font-weight:600;color:#a8823a">${s.title}.</span> ${s.text}
+        </p>
+      </div>`
+  ).join('')
+
   const html = `
-    <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px">
+    <div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px">
       <h1 style="color:#c9a84c;font-size:20px;margin:0 0 16px">Welcome to XCLUSV DropshipOS</h1>
-      <p style="color:#333;font-size:15px;line-height:1.5">Your account is ready. Sign in anytime to start sourcing products, generating listings, building ad scripts, and tracking orders — all in one place.</p>
-      <p style="color:#333;font-size:15px;line-height:1.5">Questions or feedback? Just reply to this email.</p>
+
+      <h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.04em;color:#888;margin:0 0 8px">New to dropshipping?</h2>
+      <p style="color:#333;font-size:15px;line-height:1.5;margin:0 0 24px">${DROPSHIPPING_PRIMER}</p>
+
+      <h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.04em;color:#888;margin:0 0 4px">How DropshipOS works</h2>
+      <p style="color:#666;font-size:13px;margin:0 0 4px">Seven modules, one workflow — from finding a product to knowing who's buying it.</p>
+      <div>${stepsHtml}</div>
+
+      <p style="color:#666;font-size:13px;line-height:1.5;margin-top:20px">Every module saves straight to your account — vendors, orders, customers, and saved listings sync across devices, so you can switch from phone to desktop mid-task and pick up right where you left off.</p>
+
+      <p style="color:#333;font-size:15px;line-height:1.5;margin-top:20px">Sign in anytime to get started. Questions or feedback? Just reply to this email.</p>
       <p style="color:#888;font-size:13px;margin-top:24px">— XCLUSV</p>
     </div>`
 
