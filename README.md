@@ -72,28 +72,47 @@ Render's web dashboard can get confused about relative paths when the Dockerfile
 
 ## Email alerts (optional)
 
-Get an email to your own inbox on new signups and on every login, sent via your own Gmail account (no third-party email service needed). Both alerts share the same Gmail setup:
+Get an email to your own inbox on new signups and on every login. Sent via **Resend's HTTPS API**, not SMTP — many hosts (including Render's free tier) block outbound SMTP connections entirely, so a raw Gmail SMTP setup will silently time out there regardless of credentials. Both alerts share the same setup:
 
-1. Enable **2-Step Verification** on your Google account (myaccount.google.com/security), then generate an **App Password** at myaccount.google.com/apppasswords.
+1. Create a free account at [resend.com](https://resend.com) and grab an API key (Dashboard → API Keys) — no domain verification needed, the default `onboarding@resend.dev` sender works immediately, up to 3,000 emails/month on the free tier.
 2. On Render, add environment variables to the proxy service:
-   - `GMAIL_USER` — your Gmail address (alerts are sent from and to this same address)
-   - `GMAIL_APP_PASSWORD` — the 16-character App Password from step 1
-   - `WEBHOOK_SECRET` — any long random string, only needed for the signup webhook below (login alerts authenticate with the user's own session token instead)
+   - `GMAIL_USER` — the address you want alerts sent *to* (just the recipient — despite the name, this isn't used to send via Gmail anymore)
+   - `RESEND_API_KEY` — the API key from step 1
+   - `WEBHOOK_SECRET` — any long random string, only needed for the signup trigger below (login alerts authenticate with the user's own session token instead)
 
 ### New signup alert
 
-In Supabase, go to **Database → Webhooks → Create a new webhook**:
-- Table: `user_usage`, schema `public`
-- Events: `Insert`
-- Type: `HTTP Request`, method `POST`
-- URL: `https://<your-render-url>/api/webhooks/new-signup`
-- Add an HTTP header: `x-webhook-secret` = the same value as `WEBHOOK_SECRET` above
+Supabase's Database Webhooks UI depends on a platform-managed `supabase_functions` schema that isn't present on every project — if creating a webhook there fails with `schema "supabase_functions" does not exist`, skip the UI and wire it up directly via SQL instead (requires the `pg_net` extension enabled under Database → Extensions):
 
-`user_usage` already gets a row inserted automatically on every signup (via the `handle_new_user` trigger from `0001_init.sql`), so this fires once per new account. The webhook endpoint checks the `x-webhook-secret` header before doing anything, so it can't be triggered by anyone else.
+```sql
+create or replace function public.notify_new_signup()
+returns trigger as $$
+begin
+  perform net.http_post(
+    url := 'https://<your-render-url>/api/webhooks/new-signup',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-webhook-secret', '<same value as WEBHOOK_SECRET>'
+    ),
+    body := jsonb_build_object('record', jsonb_build_object('user_id', NEW.user_id))
+  );
+  return NEW;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_user_usage_insert_notify on public.user_usage;
+create trigger on_user_usage_insert_notify
+  after insert on public.user_usage
+  for each row execute procedure public.notify_new_signup();
+```
+
+If the Database Webhooks UI works on your project, the dashboard path is equivalent: **Database → Webhooks → Create a new webhook**, table `user_usage`, schema `public`, event `Insert`, type `HTTP Request`, method `POST`, URL `https://<your-render-url>/api/webhooks/new-signup`, header `x-webhook-secret` = `WEBHOOK_SECRET`.
+
+Either way, `user_usage` already gets a row inserted automatically on every signup (via the `handle_new_user` trigger from `0001_init.sql`), so this fires once per new account. The endpoint checks the `x-webhook-secret` header before doing anything, so it can't be triggered by anyone else.
 
 ### Login alert
 
-No extra setup beyond the Gmail env vars above — the frontend pings `POST /api/auth-events/login` (authenticated with the signed-in user's own session token) right after a successful sign-in, and the proxy emails you. It only fires on an explicit sign-in submit, not on silent background token refreshes, so it won't spam you every time someone's browser tab just stays open.
+No extra setup beyond the env vars above — the frontend pings `POST /api/auth-events/login` (authenticated with the signed-in user's own session token) right after a successful sign-in, and the proxy emails you. It only fires on an explicit sign-in submit, not on silent background token refreshes, so it won't spam you every time someone's browser tab just stays open.
 
 ## Security notes
 
