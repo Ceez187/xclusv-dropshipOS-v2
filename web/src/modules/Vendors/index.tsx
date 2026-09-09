@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button'
 import Badge, { type BadgeColor } from '../../components/ui/Badge'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import OrderBuilder from './OrderBuilder'
-import type { ContactMethod, Vendor } from '../../types'
+import type { ContactMethod, Order, OrderStatus, Vendor } from '../../types'
 
 const CONTACT_METHODS: ContactMethod[] = ['whatsapp', 'wechat', 'facebook', 'email']
 
@@ -14,6 +14,24 @@ const METHOD_COLOR: Record<ContactMethod, BadgeColor> = {
   wechat: 'blue',
   facebook: 'purple',
   email: 'slate',
+}
+
+const STATUS_COLOR: Record<OrderStatus, BadgeColor> = {
+  sourcing: 'slate',
+  ordered: 'blue',
+  basetao_received: 'purple',
+  shipped: 'amber',
+  delivered: 'green',
+  cancelled: 'red',
+}
+
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  sourcing: 'Sourcing',
+  ordered: 'Ordered',
+  basetao_received: 'Basetao Received',
+  shipped: 'Shipped',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
 }
 
 function isValidForMethod(method: ContactMethod, value: string) {
@@ -38,11 +56,13 @@ interface VendorsProps {
 
 export default function Vendors({ draftItem, onDraftConsumed }: VendorsProps) {
   const { rows: vendors, loading, insert, update, remove } = useSupabaseTable<Vendor>('vendors')
+  const { rows: orders } = useSupabaseTable<Order>('orders')
   const [form, setForm] = useState<VendorForm>(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formError, setFormError] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Vendor | null>(null)
   const [orderBuilderFor, setOrderBuilderFor] = useState<string | null>(null)
+  const [orderHistoryFor, setOrderHistoryFor] = useState<string | null>(null)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -157,7 +177,9 @@ export default function Vendors({ draftItem, onDraftConsumed }: VendorsProps) {
         )}
 
         <div className="space-y-3">
-          {vendors.map((vendor) => (
+          {vendors.map((vendor) => {
+            const vendorOrders = orders.filter((o) => o.vendor_id === vendor.id).slice(0, 5)
+            return (
             <Card key={vendor.id}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
@@ -171,6 +193,12 @@ export default function Vendors({ draftItem, onDraftConsumed }: VendorsProps) {
                   {vendor.notes && <p className="mt-1 text-sm text-brand-muted">{vendor.notes}</p>}
                 </div>
                 <div className="flex flex-wrap gap-2 sm:shrink-0">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setOrderHistoryFor(orderHistoryFor === vendor.id ? null : vendor.id)}
+                  >
+                    Order history ({vendorOrders.length})
+                  </Button>
                   <Button
                     variant="secondary"
                     onClick={() =>
@@ -188,6 +216,28 @@ export default function Vendors({ draftItem, onDraftConsumed }: VendorsProps) {
                 </div>
               </div>
 
+              {orderHistoryFor === vendor.id && (
+                <div className="mt-3 space-y-2 rounded-md border border-brand-border bg-black/30 p-3">
+                  <p className="text-xs font-semibold uppercase text-brand-muted">
+                    Recent orders from this vendor
+                  </p>
+                  {vendorOrders.length === 0 && (
+                    <p className="text-sm text-brand-muted">No orders logged with this vendor yet.</p>
+                  )}
+                  {vendorOrders.map((order) => (
+                    <div key={order.id} className="rounded-md border border-brand-border p-2 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-brand-text">{order.product_name}</span>
+                        <Badge color={STATUS_COLOR[order.status]}>{STATUS_LABEL[order.status]}</Badge>
+                      </div>
+                      {order.tracking_notes && (
+                        <p className="mt-1 text-brand-muted">{order.tracking_notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {orderBuilderFor === vendor.id && (
                 <OrderBuilder
                   vendor={vendor}
@@ -199,7 +249,8 @@ export default function Vendors({ draftItem, onDraftConsumed }: VendorsProps) {
                 />
               )}
             </Card>
-          ))}
+            )
+          })}
         </div>
       </div>
 

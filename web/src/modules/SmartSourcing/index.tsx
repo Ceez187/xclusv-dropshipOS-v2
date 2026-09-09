@@ -156,6 +156,9 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
   const [showHistory, setShowHistory] = useState(false)
   const [copiedBriefSite, setCopiedBriefSite] = useState<string | null>(null)
   const [copiedKeywordSite, setCopiedKeywordSite] = useState<string | null>(null)
+  const [savedHistoryId, setSavedHistoryId] = useState<string | null>(null)
+  const [listingUrlInput, setListingUrlInput] = useState('')
+  const [listingUrlSaved, setListingUrlSaved] = useState(false)
 
   useEffect(() => {
     if (loading) {
@@ -183,12 +186,28 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
   }
 
   async function saveToHistory(analysis: SourcingAnalysis) {
-    await history.insert({ data: analysis } as Partial<SavedItem<SourcingAnalysis>>)
+    const inserted = await history.insert({ data: analysis } as Partial<SavedItem<SourcingAnalysis>>)
+    setSavedHistoryId(inserted.id)
     if (history.rows.length >= 10) {
       const oldest = [...history.rows].sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       )[0]
       if (oldest) await history.remove(oldest.id)
+    }
+  }
+
+  // Pins the specific listing URL the user found after clicking through one
+  // of the search links — the AI only ever produces a search keyword, never
+  // the actual item, so this is the step that closes the loop and makes the
+  // saved history useful the next time this product comes up.
+  async function saveChosenListingUrl() {
+    const url = listingUrlInput.trim()
+    if (!url || !result?.analysis) return
+    const updatedAnalysis = { ...result.analysis, chosenListingUrl: url }
+    setResult((prev) => (prev ? { ...prev, analysis: updatedAnalysis } : prev))
+    setListingUrlSaved(true)
+    if (savedHistoryId) {
+      await history.update(savedHistoryId, { data: updatedAnalysis } as Partial<SavedItem<SourcingAnalysis>>)
     }
   }
 
@@ -201,6 +220,9 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
     setLoading(true)
     setError('')
     setResult(null)
+    setSavedHistoryId(null)
+    setListingUrlInput('')
+    setListingUrlSaved(false)
     try {
       let analysis: SourcingAnalysis | null
       let raw: string
@@ -275,10 +297,14 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                 key={item.id}
                 onClick={() => {
                   setResult({ analysis: item.data, raw: '', liveListings: null, degraded: true })
+                  setSavedHistoryId(item.id)
+                  setListingUrlInput(item.data?.chosenListingUrl ?? '')
+                  setListingUrlSaved(!!item.data?.chosenListingUrl)
                   setShowHistory(false)
                 }}
                 className="block w-full rounded-md border border-brand-border bg-brand-surface px-3 py-2 text-left text-sm hover:bg-black/30"
               >
+                {item.data?.chosenListingUrl && <span className="mr-1">🔗</span>}
                 {item.data?.productName ?? 'Untitled'} — ${item.data?.suggestedRetail}
               </button>
             ))}
@@ -364,7 +390,13 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                 <h3 className="text-lg font-semibold">{result.analysis.productName}</h3>
                 <Button
                   variant="secondary"
-                  onClick={() => onSendToVendors?.(result.analysis!.productName)}
+                  onClick={() =>
+                    onSendToVendors?.(
+                      result.analysis!.chosenListingUrl
+                        ? `${result.analysis!.productName} — ${result.analysis!.chosenListingUrl}`
+                        : result.analysis!.productName
+                    )
+                  }
                 >
                   Send to Vendor Order Builder
                 </Button>
@@ -434,6 +466,28 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                       )
                     })
                   })()}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="mb-2 text-sm font-semibold text-brand-text">Found the exact listing?</h4>
+                <p className="mb-2 text-xs text-brand-muted">
+                  Paste the link once you've picked the real item from one of the sites above — it's saved
+                  with this search in your history, and carried along when you send this to a vendor.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    placeholder="https://..."
+                    value={listingUrlInput}
+                    onChange={(e) => {
+                      setListingUrlInput(e.target.value)
+                      setListingUrlSaved(false)
+                    }}
+                    className="min-w-0 flex-1 rounded-md border border-brand-border px-3 py-2 text-sm"
+                  />
+                  <Button variant="secondary" onClick={saveChosenListingUrl} disabled={!listingUrlInput.trim()}>
+                    {listingUrlSaved ? 'Saved ✓' : 'Save link'}
+                  </Button>
                 </div>
               </div>
 

@@ -85,6 +85,9 @@ export interface SourcingAnalysis {
   }[]
   searchKeywordZh: string
   searchKeywordEn: string
+  // User-pinned, not AI-generated — set after the user clicks through one of
+  // the search links and finds the actual listing they want to order.
+  chosenListingUrl?: string
 }
 
 export interface LiveListing {
