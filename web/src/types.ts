@@ -85,6 +85,13 @@ export interface SourcingAnalysis {
   }[]
   searchKeywordZh: string
   searchKeywordEn: string
+  // What to look for / avoid when picking a supplier for this specific
+  // product category — general sourcing literacy, not live seller data.
+  qualityIndicators?: string[]
+  redFlags?: string[]
+  // Alternate phrasings of the search term a shopper might try, each with
+  // pinyin so a non-Chinese-reading user can still recognize/pronounce it.
+  keywordVariants?: { chinese: string; pinyin: string; english: string }[]
   // User-pinned, not AI-generated — set after the user clicks through one of
   // the search links and finds the actual listing they want to order.
   chosenListingUrl?: string

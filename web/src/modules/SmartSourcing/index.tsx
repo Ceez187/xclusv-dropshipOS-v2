@@ -430,6 +430,64 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                 </div>
               )}
 
+              {(result.analysis.qualityIndicators?.length ?? 0) > 0 ||
+              (result.analysis.redFlags?.length ?? 0) > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {result.analysis.qualityIndicators && result.analysis.qualityIndicators.length > 0 && (
+                    <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3">
+                      <h4 className="mb-2 text-sm font-semibold text-green-400">✅ Quality supplier indicators</h4>
+                      <ul className="space-y-1 text-sm text-brand-text">
+                        {result.analysis.qualityIndicators.map((point, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className="text-green-400">•</span>
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.analysis.redFlags && result.analysis.redFlags.length > 0 && (
+                    <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
+                      <h4 className="mb-2 text-sm font-semibold text-red-400">🚩 Red flags to avoid</h4>
+                      <ul className="space-y-1 text-sm text-brand-text">
+                        {result.analysis.redFlags.map((point, i) => (
+                          <li key={i} className="flex gap-2">
+                            <span className="text-red-400">•</span>
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {result.analysis.keywordVariants && result.analysis.keywordVariants.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold text-brand-text">Alternate search terms to try</h4>
+                  <div className="overflow-x-auto rounded-md border border-brand-border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-brand-border text-left text-xs uppercase text-brand-muted">
+                          <th className="px-3 py-2">Chinese</th>
+                          <th className="px-3 py-2">Pinyin</th>
+                          <th className="px-3 py-2">English</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.analysis.keywordVariants.map((row, i) => (
+                          <tr key={i} className="border-b border-brand-border last:border-0">
+                            <td className="px-3 py-2 text-brand-text">{row.chinese}</td>
+                            <td className="px-3 py-2 text-brand-muted">{row.pinyin}</td>
+                            <td className="px-3 py-2 text-brand-text">{row.english}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h4 className="mb-2 text-sm font-semibold text-brand-text">Search by site</h4>
                 <div className="space-y-2">
