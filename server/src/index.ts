@@ -41,5 +41,19 @@ app.use('/api/sourcing', sourcingRoute)
 app.use('/api/webhooks', webhooksRoute)
 app.use('/api/auth-events', authEventsRoute)
 
+// Without this, an error thrown before a route handler runs (e.g.
+// express.json() rejecting an oversized body) falls through to Express's
+// default handler, which returns an HTML page with a full stack trace
+// (including server file paths) instead of JSON — the client's fetch-based
+// API layer expects JSON and leaking internals to the browser besides.
+app.use((err: { status?: number; statusCode?: number; message?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = err.status ?? err.statusCode ?? 500
+  if (status === 413) {
+    return res.status(413).json({ error: 'That upload is too large. Please use a smaller image.' })
+  }
+  console.error(err)
+  res.status(status).json({ error: 'Server error' })
+})
+
 const port = process.env.PORT || 8080
 app.listen(port, () => console.log(`Proxy running on :${port}`))

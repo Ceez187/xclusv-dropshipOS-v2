@@ -15,6 +15,9 @@ interface SourcingResult {
   degraded?: boolean
 }
 
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -59,7 +62,10 @@ const SOURCING_SITES: SourcingSite[] = [
     key: 'ali1688',
     label: '1688',
     useZh: true,
-    buildUrl: (kw) => `https://www.1688.com/s/?keywords=${encodeURIComponent(kw)}`,
+    // Must be s.1688.com/selloffer/offer_search.htm, not www.1688.com/s/ —
+    // the latter doesn't actually filter by keyword (verified: it's not a
+    // real 1688 search endpoint).
+    buildUrl: (kw) => `https://s.1688.com/selloffer/offer_search.htm?keywords=${encodeURIComponent(kw)}`,
   },
   {
     key: 'taobao',
@@ -180,7 +186,19 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
 
   function handleImageSelect(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file after a rejection
     if (!file) return
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setError('Please upload a JPG, PNG, or WEBP image.')
+      return
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError(`That photo is ${(file.size / 1024 / 1024).toFixed(1)}MB — please upload one under 4MB.`)
+      return
+    }
+
+    setError('')
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
