@@ -2,7 +2,7 @@ import express from 'express'
 import { auth } from '../middleware/auth'
 import { enforceUsageLimit } from '../middleware/enforceUsage'
 import { checkUsage, getUsageRow, burnUsage, ACTION_COST } from '../usage'
-import { anthropic, MODEL } from '../anthropic'
+import { anthropic, MODEL, handleAnthropicError } from '../anthropic'
 
 const router = express.Router()
 
@@ -30,6 +30,10 @@ function normalizeListings(raw: unknown): unknown[] | null {
 // and only checked usage afterward, so an over-limit user still got a full
 // analysis back.
 router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => {
+  if (!Array.isArray(req.body.messages) || req.body.messages.length === 0) {
+    return res.status(400).json({ error: 'messages must be a non-empty array' })
+  }
+
   try {
     const analysis = await anthropic.messages.create({
       model: MODEL,
@@ -50,6 +54,11 @@ router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => 
               'X-RapidAPI-Key': process.env.RAPIDAPI_KEY!,
               'X-RapidAPI-Host': process.env.RAPIDAPI_HOST!,
             },
+            // Without this, a stalled RapidAPI connection hangs the whole
+            // request indefinitely instead of degrading — defeating the
+            // point of the try/catch below, which only ever catches an
+            // outright failure, not a hang.
+            signal: AbortSignal.timeout(8_000),
           }
         )
         liveListings = normalizeListings(await rapidRes.json())
@@ -73,8 +82,7 @@ router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => 
 
     res.json({ content: analysis.content, liveListings, degraded: !usedRapidApi })
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Server error' })
+    handleAnthropicError(err, res)
   }
 })
 

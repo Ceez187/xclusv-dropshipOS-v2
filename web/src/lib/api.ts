@@ -55,9 +55,16 @@ export interface ProxyRequestBody {
   max_tokens?: number
 }
 
-// POSTs to the Fly.io proxy with the current Supabase session token attached.
-// Throws ApiError with `.reason` set to LIMIT_REACHED / RAPIDAPI_LIMIT_REACHED
-// on 403 so callers can branch without parsing the response themselves.
+// Slightly longer than the server's own 45s Anthropic timeout (see
+// server/src/anthropic.ts), so a slow-but-real Anthropic response has room
+// to come back with the server's own "took too long" message before this
+// abort fires and produces a blunter, unexplained network error instead.
+const PROXY_TIMEOUT_MS = 50_000
+
+// POSTs to the Render proxy with the current Supabase session token
+// attached. Throws ApiError with `.reason` set to LIMIT_REACHED /
+// RAPIDAPI_LIMIT_REACHED on 403 so callers can branch without parsing the
+// response themselves.
 export async function callProxy(path: string, body: ProxyRequestBody): Promise<ProxyResponse> {
   const {
     data: { session },
@@ -67,14 +74,23 @@ export async function callProxy(path: string, body: ProxyRequestBody): Promise<P
     throw new ApiError('Not logged in', { status: 401, reason: 'NOT_LOGGED_IN' })
   }
 
-  const res = await fetch(`${PROXY_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify(body),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${PROXY_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+    })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new ApiError('The AI took too long to respond — please try again.', { status: 504 })
+    }
+    throw new ApiError('Could not reach the server — check your connection and try again.', { status: 0 })
+  }
 
   let json: Record<string, unknown> | null = null
   try {
