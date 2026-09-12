@@ -1,4 +1,4 @@
-create table user_usage (
+create table if not exists user_usage (
   user_id uuid references auth.users(id) primary key,
   tier text default 'limited',
   actions_used int default 0,
@@ -9,7 +9,7 @@ create table user_usage (
   updated_at timestamp default now()
 );
 
-create table vendors (
+create table if not exists vendors (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) not null,
   name text,
@@ -19,7 +19,7 @@ create table vendors (
   created_at timestamp default now()
 );
 
-create table orders (
+create table if not exists orders (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) not null,
   vendor_id uuid references vendors(id),
@@ -33,7 +33,7 @@ create table orders (
   updated_at timestamp default now()
 );
 
-create table customers (
+create table if not exists customers (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) not null,
   name text,
@@ -45,7 +45,7 @@ create table customers (
   created_at timestamp default now()
 );
 
-create table saved_items (
+create table if not exists saved_items (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) not null,
   kind text, -- 'listing', 'pricing_profile', 'sourcing_history'
@@ -53,14 +53,16 @@ create table saved_items (
   created_at timestamp default now()
 );
 
-create function public.handle_new_user()
+create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.user_usage (user_id) values (new.id);
+  insert into public.user_usage (user_id) values (new.id)
+  on conflict (user_id) do nothing;
   return new;
 end;
 $$ language plpgsql security definer;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
@@ -70,7 +72,14 @@ alter table orders enable row level security;
 alter table customers enable row level security;
 alter table saved_items enable row level security;
 
+drop policy if exists "own rows only" on vendors;
 create policy "own rows only" on vendors for all using (auth.uid() = user_id);
+
+drop policy if exists "own rows only" on orders;
 create policy "own rows only" on orders for all using (auth.uid() = user_id);
+
+drop policy if exists "own rows only" on customers;
 create policy "own rows only" on customers for all using (auth.uid() = user_id);
+
+drop policy if exists "own rows only" on saved_items;
 create policy "own rows only" on saved_items for all using (auth.uid() = user_id);

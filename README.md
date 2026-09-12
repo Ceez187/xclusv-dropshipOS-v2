@@ -5,10 +5,12 @@ A from-scratch rebuild: React + Vite frontend (`/web`), Express proxy (`/server`
 ## 1. Set up Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open the SQL editor and run `supabase/migrations/0001_init.sql`, then `0002_user_usage_rls.sql`, in order.
+2. Open the SQL editor and run `supabase/migrations/0001_init.sql`, then `0002_user_usage_rls.sql`, then `0003_knowledge_base.sql`, in order.
 3. Grab your project's `URL`, `anon` public key, and `service_role` secret key from Settings → API.
 
-`0001_init.sql` is the spec's schema verbatim, which left `user_usage` without RLS (only `vendors`, `orders`, `customers`, and `saved_items` have policies). `0002_user_usage_rls.sql` closes that gap with a `select`-only policy — the frontend only ever reads its own row (`UsageContext`); all writes go through the proxy's service key, which bypasses RLS anyway.
+`0001_init.sql` is the spec's schema verbatim, which left `user_usage` without RLS (only `vendors`, `orders`, `customers`, and `saved_items` have policies). `0002_user_usage_rls.sql` closes that gap with a `select`-only policy — the frontend only ever reads its own row (`UsageContext`); all writes go through the proxy's service key, which bypasses RLS anyway. `0003_knowledge_base.sql` adds `glossary_terms` and `faq_items` for the Knowledge Base tab, seeded with starter content — these are read-only from the app (no insert/update/delete policy), so add or edit entries directly in the Supabase Table Editor.
+
+All files are safe to re-run (`create table if not exists`, `drop policy if exists` before each `create policy`, `on conflict do nothing` on seed rows, etc.) — if a previous attempt partially failed partway through (e.g. `user_usage` got created but a later table didn't), just re-run the same file rather than trying to hand-patch it.
 
 ## 2. Configure environment variables
 
@@ -51,6 +53,13 @@ fly deploy
 
 Once the proxy is live, update `VITE_PROXY_URL` in Netlify to the Fly.io URL and redeploy the frontend.
 
+**Proxy → Render (alternative, no CLI needed)**:
+Render's web dashboard can get confused about relative paths when the Dockerfile lives in a subfolder, so there's a second Dockerfile at the **repo root** (`/Dockerfile`) purely for Render — it explicitly copies from `server/`, so Render's defaults (blank Root Directory, blank Docker Build Context Directory, Dockerfile Path = `Dockerfile`) just work with no path juggling. To deploy:
+1. Render dashboard → New → Web Service → connect this repo, branch `claude/dropshipos-phase-1-rebuild-hqz99s`
+2. Leave Root Directory, Docker Build Context Directory blank; set Dockerfile Path to `Dockerfile`
+3. Add the same env vars as the Fly.io section above
+4. Deploy — Render gives you a URL like `https://xxxx.onrender.com`, use that as `VITE_PROXY_URL`
+
 ## 5. Test checklist before calling it done
 
 - [ ] Sign up creates a `user_usage` row automatically
@@ -60,6 +69,59 @@ Once the proxy is live, update `VITE_PROXY_URL` in Netlify to the Fly.io URL and
 - [ ] No API keys visible anywhere in browser dev tools / network tab (only `Authorization: Bearer <supabase token>` should appear)
 - [ ] Vision (image upload) sourcing works without timing out
 - [ ] Every module's create/edit/delete actually persists to Supabase (spot check the table directly in the Supabase dashboard)
+
+## Email alerts (optional)
+
+Get an email to your own inbox on new signups and on every login. Sent via **Resend's HTTPS API**, not SMTP — many hosts (including Render's free tier) block outbound SMTP connections entirely, so a raw Gmail SMTP setup will silently time out there regardless of credentials. Both alerts share the same setup:
+
+1. Create a free account at [resend.com](https://resend.com) and grab an API key (Dashboard → API Keys) — no domain verification needed, the default `onboarding@resend.dev` sender works immediately, up to 3,000 emails/month on the free tier.
+2. On Render, add environment variables to the proxy service:
+   - `GMAIL_USER` — the address you want alerts sent *to* (just the recipient — despite the name, this isn't used to send via Gmail anymore)
+   - `RESEND_API_KEY` — the API key from step 1
+   - `WEBHOOK_SECRET` — any long random string, only needed for the signup trigger below (login alerts authenticate with the user's own session token instead)
+
+### New signup alert
+
+Supabase's Database Webhooks UI depends on a platform-managed `supabase_functions` schema that isn't present on every project — if creating a webhook there fails with `schema "supabase_functions" does not exist`, skip the UI and wire it up directly via SQL instead (requires the `pg_net` extension enabled under Database → Extensions):
+
+```sql
+create or replace function public.notify_new_signup()
+returns trigger as $$
+begin
+  perform net.http_post(
+    url := 'https://<your-render-url>/api/webhooks/new-signup',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-webhook-secret', '<same value as WEBHOOK_SECRET>'
+    ),
+    body := jsonb_build_object('record', jsonb_build_object('user_id', NEW.user_id))
+  );
+  return NEW;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_user_usage_insert_notify on public.user_usage;
+create trigger on_user_usage_insert_notify
+  after insert on public.user_usage
+  for each row execute procedure public.notify_new_signup();
+```
+
+If the Database Webhooks UI works on your project, the dashboard path is equivalent: **Database → Webhooks → Create a new webhook**, table `user_usage`, schema `public`, event `Insert`, type `HTTP Request`, method `POST`, URL `https://<your-render-url>/api/webhooks/new-signup`, header `x-webhook-secret` = `WEBHOOK_SECRET`.
+
+Either way, `user_usage` already gets a row inserted automatically on every signup (via the `handle_new_user` trigger from `0001_init.sql`), so this fires once per new account. The endpoint checks the `x-webhook-secret` header before doing anything, so it can't be triggered by anyone else.
+
+### Login alert
+
+No extra setup beyond the env vars above — the frontend pings `POST /api/auth-events/login` (authenticated with the signed-in user's own session token) right after a successful sign-in, and the proxy emails you. It only fires on an explicit sign-in submit, not on silent background token refreshes, so it won't spam you every time someone's browser tab just stays open.
+
+## Security notes
+
+- **Customer/vendor/order data** lives in Postgres tables with row-level security (`auth.uid() = user_id`) — enforced by the database itself, not just app code, so one account can never read or write another's rows even if the frontend were tampered with.
+- **Secrets** (`ANTHROPIC_API_KEY`, `RAPIDAPI_KEY`, `SUPABASE_SERVICE_KEY`) only ever live server-side in `server/`; the browser only ever sees the Supabase `anon` key, which is meant to be public and is itself constrained by RLS.
+- **AI calls are proxied**, never made directly from the browser, and are gated by `auth` (valid Supabase session required) + `enforceUsageLimit` (per-user monthly quota) before any Anthropic/RapidAPI call runs. `max_tokens` is capped server-side regardless of what a caller requests, since it directly drives API cost.
+- The proxy sets standard security headers (`helmet`) and rate-limits `/api/*` (20 req/min/IP) as a backstop against a single caller hammering the AI endpoints faster than the per-user quota check alone would catch.
+- `user_usage` is select-only from the client — actual usage increments only happen server-side via the service-role key, so a user can't edit their own quota.
+- Customer analysis prompts only send the customer's name and order history to Claude, never their email — minimizing PII sent to a third-party API.
 
 ## Project layout
 

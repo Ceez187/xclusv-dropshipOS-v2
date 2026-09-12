@@ -1,0 +1,272 @@
+import { useState, type FormEvent } from 'react'
+import { useSupabaseTable } from '../../lib/useSupabaseTable'
+import Card from '../../components/ui/Card'
+import Button from '../../components/ui/Button'
+import Badge, { type BadgeColor } from '../../components/ui/Badge'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import OrderBuilder from './OrderBuilder'
+import type { ContactMethod, Order, OrderStatus, Vendor } from '../../types'
+
+const CONTACT_METHODS: ContactMethod[] = ['whatsapp', 'wechat', 'facebook', 'email']
+
+const METHOD_COLOR: Record<ContactMethod, BadgeColor> = {
+  whatsapp: 'green',
+  wechat: 'blue',
+  facebook: 'purple',
+  email: 'slate',
+}
+
+const STATUS_COLOR: Record<OrderStatus, BadgeColor> = {
+  sourcing: 'slate',
+  ordered: 'blue',
+  basetao_received: 'purple',
+  shipped: 'amber',
+  delivered: 'green',
+  cancelled: 'red',
+}
+
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  sourcing: 'Sourcing',
+  ordered: 'Ordered',
+  basetao_received: 'Basetao Received',
+  shipped: 'Shipped',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+}
+
+function isValidForMethod(method: ContactMethod, value: string) {
+  if (method === 'whatsapp') return /^\+?[0-9\s-]{7,15}$/.test(value)
+  if (method === 'email') return /^\S+@\S+\.\S+$/.test(value)
+  return value.trim().length > 0
+}
+
+interface VendorForm {
+  name: string
+  contact_method: ContactMethod
+  contact_value: string
+  notes: string
+}
+
+const EMPTY_FORM: VendorForm = { name: '', contact_method: 'whatsapp', contact_value: '', notes: '' }
+
+interface VendorsProps {
+  draftItem?: string | null
+  onDraftConsumed: () => void
+}
+
+export default function Vendors({ draftItem, onDraftConsumed }: VendorsProps) {
+  const { rows: vendors, loading, insert, update, remove } = useSupabaseTable<Vendor>('vendors')
+  const { rows: orders } = useSupabaseTable<Order>('orders')
+  const [form, setForm] = useState<VendorForm>(EMPTY_FORM)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [formError, setFormError] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<Vendor | null>(null)
+  const [orderBuilderFor, setOrderBuilderFor] = useState<string | null>(null)
+  const [orderHistoryFor, setOrderHistoryFor] = useState<string | null>(null)
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setFormError('')
+
+    if (!form.name.trim()) {
+      setFormError('Vendor name is required.')
+      return
+    }
+    if (form.contact_value && !isValidForMethod(form.contact_method, form.contact_value)) {
+      setFormError(
+        form.contact_method === 'whatsapp'
+          ? 'That doesn’t look like a valid WhatsApp number (use digits, spaces, or a leading +).'
+          : 'That doesn’t look like a valid email address.'
+      )
+      return
+    }
+
+    try {
+      if (editingId) {
+        await update(editingId, form)
+      } else {
+        await insert(form)
+      }
+      setForm(EMPTY_FORM)
+      setEditingId(null)
+    } catch (err) {
+      setFormError((err as Error).message || 'Something went wrong saving this vendor.')
+    }
+  }
+
+  function startEdit(vendor: Vendor) {
+    setEditingId(vendor.id)
+    setForm({
+      name: vendor.name ?? '',
+      contact_method: vendor.contact_method ?? 'whatsapp',
+      contact_value: vendor.contact_value ?? '',
+      notes: vendor.notes ?? '',
+    })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+    setFormError('')
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    try {
+      await remove(pendingDelete.id)
+    } catch (err) {
+      setFormError((err as Error).message || 'Something went wrong deleting this vendor.')
+    }
+    setPendingDelete(null)
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <h2 className="mb-3 text-base font-semibold">{editingId ? 'Edit vendor' : 'Add vendor'}</h2>
+        <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
+          <input
+            placeholder="Vendor name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="rounded-md border border-brand-border px-3 py-2 text-sm"
+          />
+          <select
+            value={form.contact_method}
+            onChange={(e) => setForm({ ...form, contact_method: e.target.value as ContactMethod })}
+            className="rounded-md border border-brand-border px-3 py-2 text-sm"
+          >
+            {CONTACT_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <input
+            placeholder="Contact value (phone, handle, email...)"
+            value={form.contact_value}
+            onChange={(e) => setForm({ ...form, contact_value: e.target.value })}
+            className="rounded-md border border-brand-border px-3 py-2 text-sm sm:col-span-2"
+          />
+          <textarea
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            rows={2}
+            className="rounded-md border border-brand-border px-3 py-2 text-sm sm:col-span-2"
+          />
+
+          {formError && <p className="text-sm text-red-400 sm:col-span-2">{formError}</p>}
+
+          <div className="flex gap-2 sm:col-span-2">
+            <Button type="submit">{editingId ? 'Save changes' : 'Add vendor'}</Button>
+            {editingId && (
+              <Button type="button" variant="secondary" onClick={cancelEdit}>
+                Cancel
+              </Button>
+            )}
+          </div>
+        </form>
+      </Card>
+
+      <div>
+        <h2 className="mb-3 text-base font-semibold">Vendors ({vendors.length})</h2>
+        {loading && <p className="text-sm text-brand-muted">Loading…</p>}
+        {!loading && vendors.length === 0 && (
+          <p className="text-sm text-brand-muted">No vendors yet — add your first one above.</p>
+        )}
+
+        <div className="space-y-3">
+          {vendors.map((vendor) => {
+            const vendorOrders = orders.filter((o) => o.vendor_id === vendor.id).slice(0, 5)
+            return (
+            <Card key={vendor.id}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-brand-text">{vendor.name}</h3>
+                    <Badge color={METHOD_COLOR[vendor.contact_method] ?? 'slate'}>
+                      {vendor.contact_method}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-brand-muted">{vendor.contact_value}</p>
+                  {vendor.notes && <p className="mt-1 text-sm text-brand-muted">{vendor.notes}</p>}
+                </div>
+                <div className="flex flex-wrap gap-2 sm:shrink-0">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setOrderHistoryFor(orderHistoryFor === vendor.id ? null : vendor.id)}
+                  >
+                    Order history ({vendorOrders.length})
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setOrderBuilderFor(orderBuilderFor === vendor.id ? null : vendor.id)
+                    }
+                  >
+                    Order builder
+                  </Button>
+                  <Button variant="ghost" onClick={() => startEdit(vendor)}>
+                    Edit
+                  </Button>
+                  <Button variant="ghost" onClick={() => setPendingDelete(vendor)}>
+                    Delete
+                  </Button>
+                </div>
+              </div>
+
+              {orderHistoryFor === vendor.id && (
+                <div className="mt-3 space-y-2 rounded-md border border-brand-border bg-black/30 p-3">
+                  <p className="text-xs font-semibold uppercase text-brand-muted">
+                    Recent orders from this vendor
+                  </p>
+                  {vendorOrders.length === 0 && (
+                    <p className="text-sm text-brand-muted">No orders logged with this vendor yet.</p>
+                  )}
+                  {vendorOrders.map((order) => (
+                    <div key={order.id} className="rounded-md border border-brand-border p-2 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-brand-text">{order.product_name}</span>
+                        <Badge color={STATUS_COLOR[order.status]}>{STATUS_LABEL[order.status]}</Badge>
+                      </div>
+                      {order.tracking_notes && (
+                        <p className="mt-1 text-brand-muted">{order.tracking_notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {orderBuilderFor === vendor.id && (
+                <OrderBuilder
+                  vendor={vendor}
+                  initialItem={draftItem}
+                  onClose={() => {
+                    setOrderBuilderFor(null)
+                    if (draftItem) onDraftConsumed()
+                  }}
+                />
+              )}
+            </Card>
+            )
+          })}
+        </div>
+      </div>
+
+      {draftItem && (
+        <p className="text-sm text-brand-gold">
+          Sourced item "{draftItem}" is ready — open a vendor's order builder to add it.
+        </p>
+      )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Delete vendor?"
+        message={`This will permanently remove ${pendingDelete?.name}.`}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
+    </div>
+  )
+}
