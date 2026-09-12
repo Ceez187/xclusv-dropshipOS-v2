@@ -37,7 +37,11 @@ router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => 
   try {
     const analysis = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 2000,
+      // See vision.ts — the enriched response shape (suppliers, quality
+      // indicators, red flags, keyword variants) routinely needs more than
+      // 2000 tokens for a real product, and a truncated response can't be
+      // JSON-parsed client-side.
+      max_tokens: 4096,
       messages: req.body.messages,
     })
 
@@ -80,7 +84,12 @@ router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => 
     const freshUsage = await getUsageRow(req.user.id)
     await burnUsage(req.user.id, freshUsage, cost, usedRapidApi)
 
-    res.json({ content: analysis.content, liveListings, degraded: !usedRapidApi })
+    res.json({
+      content: analysis.content,
+      liveListings,
+      degraded: !usedRapidApi,
+      stopReason: analysis.stop_reason,
+    })
   } catch (err) {
     handleAnthropicError(err, res)
   }

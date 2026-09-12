@@ -34,6 +34,10 @@ export interface ProxyResponse {
   usage?: ProxyUsage
   liveListings?: unknown
   degraded?: boolean
+  // Anthropic's stop_reason — 'max_tokens' means the response was cut off
+  // before the model finished, which callers asking for structured JSON
+  // (see SmartSourcing) need to distinguish from a genuine parse failure.
+  stopReason?: string
 }
 
 export type ClaudeMessageContent =

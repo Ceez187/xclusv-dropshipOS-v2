@@ -19,12 +19,17 @@ router.post('/', auth, enforceUsageLimit('smart_sourcing'), async (req, res) => 
     const { usage, cost } = req.usageCheck
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 2000,
+      // The sourcing response shape (prompts.ts) asks for 5-6 suppliers plus
+      // quality indicators, red flags, and keyword variants — a real answer
+      // for a non-trivial product routinely runs well past 2000 tokens and
+      // was getting cut off mid-JSON, which the client can't parse and falls
+      // back to dumping the raw (truncated) text at the user.
+      max_tokens: 4096,
       messages: req.body.messages, // includes image content blocks
     })
 
     await burnUsage(req.user.id, usage, cost, false)
-    res.json({ content: response.content })
+    res.json({ content: response.content, stopReason: response.stop_reason })
   } catch (err) {
     handleAnthropicError(err, res)
   }

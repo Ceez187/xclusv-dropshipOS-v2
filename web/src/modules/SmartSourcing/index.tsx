@@ -13,6 +13,7 @@ interface SourcingResult {
   raw: string
   liveListings: LiveListing[] | null
   degraded?: boolean
+  truncated?: boolean
 }
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024
@@ -246,6 +247,7 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
       let raw: string
       let liveListings: LiveListing[] | null = null
       let degraded = true
+      let stopReason: string | undefined
 
       if (imageFile) {
         const base64 = await fileToBase64(imageFile)
@@ -253,6 +255,7 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
         const messages = buildImageSourcingMessages(base64, imageFile.type, extraContext)
         const res = await callVision({ messages })
         ;({ data: analysis, raw } = parseAnalysis<SourcingAnalysis>(res.content))
+        stopReason = res.stopReason
       } else {
         const combined = [url, description].filter(Boolean).join(' — ')
         const messages = buildTextSourcingMessages(combined)
@@ -260,13 +263,19 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
         ;({ data: analysis, raw } = parseAnalysis<SourcingAnalysis>(res.content))
         liveListings = (res.liveListings as LiveListing[] | null) ?? null
         degraded = !!res.degraded
+        stopReason = res.stopReason
       }
 
       if (analysis?.suppliers?.length) {
         analysis = { ...analysis, suppliers: sortSuppliers(analysis.suppliers) }
       }
 
-      setResult({ analysis, raw, liveListings, degraded })
+      // Only relevant when parsing already failed — a max_tokens cutoff on a
+      // response Claude still managed to close out cleanly (rare, but not
+      // impossible) isn't worth flagging since the user got a usable result.
+      const truncated = !analysis && stopReason === 'max_tokens'
+
+      setResult({ analysis, raw, liveListings, degraded, truncated })
       await refreshUsage()
       if (analysis) await saveToHistory(analysis)
     } catch (err) {
@@ -599,6 +608,10 @@ export default function SmartSourcing({ onSendToVendors }: SmartSourcingProps) {
                 </p>
               )}
             </div>
+          ) : result.truncated ? (
+            <p className="text-sm text-amber-400">
+              The AI's response was cut off before it finished — please try again.
+            </p>
           ) : (
             <div>
               <p className="mb-2 text-sm text-amber-400">
